@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:jump_player/state/library_actions.dart';
 import 'package:jump_player/state/playback_providers.dart';
 
 class PlayerPage extends ConsumerWidget {
@@ -42,6 +43,21 @@ class PlayerPage extends ConsumerWidget {
                     }
                   },
                   child: const Text('打开文件'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final path = await FilePicker.platform.getDirectoryPath();
+                    if (path == null) return;
+                    try {
+                      await ref.read(libraryActionsProvider).openFolder(path);
+                    } catch (e) {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text('无法扫描该文件夹：$e')),
+                      );
+                    }
+                  },
+                  child: const Text('打开文件夹'),
                 ),
                 IconButton(
                   color: Colors.white,
