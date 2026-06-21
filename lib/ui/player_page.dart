@@ -4,6 +4,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:jump_player/state/library_actions.dart';
 import 'package:jump_player/state/playback_providers.dart';
+import 'package:jump_player/state/ui_providers.dart';
+import 'package:jump_player/ui/episode_sidebar.dart';
 
 class PlayerPage extends ConsumerWidget {
   const PlayerPage({super.key});
@@ -68,6 +70,23 @@ class PlayerPage extends ConsumerWidget {
                   },
                 ),
               ],
+            ),
+          ),
+          // 右侧可折叠剧集侧边栏
+          if (ref.watch(sidebarVisibleProvider))
+            const Align(
+              alignment: Alignment.centerRight,
+              child: EpisodeSidebar(),
+            ),
+          // 折叠/展开开关（左上角）
+          Positioned(
+            top: 8,
+            left: 8,
+            child: IconButton(
+              color: Colors.white,
+              icon: const Icon(Icons.playlist_play),
+              onPressed: () => ref.read(sidebarVisibleProvider.notifier).state =
+                  !ref.read(sidebarVisibleProvider),
             ),
           ),
         ],
