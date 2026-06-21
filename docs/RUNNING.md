@@ -130,3 +130,24 @@ flutter build macos --debug
 
 A successful build confirms the native mpv/AVFoundation integration is wired
 correctly. The app bundle is written to `build/macos/Build/Products/Debug/`.
+
+---
+
+## Manual Smoke Checklist (P2 — Media Library)
+
+> Requires a desktop GUI session; run by a human.
+
+1. Launch: `flutter run -d macos` (or `-d linux` / `-d windows`).
+2. Click **打开文件夹** and pick a folder containing several episode videos
+   (nested "one episode per subfolder" OR flat — both work).
+3. The right sidebar lists every video found under that folder, ordered by
+   episode number, with the current episode highlighted (amber).
+4. Click an episode in the sidebar → it jumps to and plays that episode.
+5. Click **上一集 / 下一集** (skip-previous / skip-next) → switches correctly;
+   buttons disable at the first / last episode.
+6. Let an episode play to the end → it auto-advances to the next episode
+   (and does NOT skip two — verifies the completion=true-only guard).
+7. Click the top-left playlist icon → the sidebar collapses / expands.
+8. The P1 **打开文件** single-file open still works.
+
+All steps passing = P2 smoke test PASS.
