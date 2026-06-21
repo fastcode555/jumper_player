@@ -29,5 +29,15 @@ void main() {
       expect(emitted, [const Duration(seconds: 42)]);
       await sub.cancel();
     });
+
+    test('emitCompleted pushes onto completedStream', () async {
+      final engine = FakePlayerEngine();
+      final emitted = <bool>[];
+      final sub = engine.completedStream.listen(emitted.add);
+      engine.emitCompleted();
+      await Future<void>.delayed(Duration.zero);
+      expect(emitted, [true]);
+      await sub.cancel();
+    });
   });
 }

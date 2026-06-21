@@ -7,6 +7,7 @@ abstract class PlayerEngine {
   Future<void> seek(Duration position);
   Stream<Duration> get positionStream;
   Stream<bool> get playingStream;
+  Stream<bool> get completedStream;
   Future<void> dispose();
 }
 
@@ -14,6 +15,7 @@ class FakePlayerEngine implements PlayerEngine {
   String? openedPath;
   final _position = StreamController<Duration>.broadcast();
   final _playing = StreamController<bool>.broadcast();
+  final _completed = StreamController<bool>.broadcast();
 
   @override
   Future<void> open(String filePath) async {
@@ -36,8 +38,14 @@ class FakePlayerEngine implements PlayerEngine {
   Stream<bool> get playingStream => _playing.stream;
 
   @override
+  Stream<bool> get completedStream => _completed.stream;
+
+  void emitCompleted() => _completed.add(true);
+
+  @override
   Future<void> dispose() async {
     await _position.close();
     await _playing.close();
+    await _completed.close();
   }
 }
