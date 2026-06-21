@@ -1,4 +1,5 @@
 import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'package:jump_player/domain/playback/player_engine.dart';
 
 class MediaKitPlayerEngine implements PlayerEngine {
@@ -7,6 +8,8 @@ class MediaKitPlayerEngine implements PlayerEngine {
   final Player _player;
 
   Player get raw => _player;
+
+  late final VideoController videoController = VideoController(_player);
 
   @override
   Future<void> open(String filePath) =>
