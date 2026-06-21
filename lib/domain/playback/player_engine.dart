@@ -40,7 +40,7 @@ class FakePlayerEngine implements PlayerEngine {
   @override
   Stream<bool> get completedStream => _completed.stream;
 
-  void emitCompleted() => _completed.add(true);
+  void emitCompleted([bool value = true]) => _completed.add(value);
 
   @override
   Future<void> dispose() async {

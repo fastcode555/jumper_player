@@ -55,4 +55,12 @@ void main() {
     expect(container.read(playbackQueueProvider).currentIndex, 1);
     expect(fake.openedPath, '/x/e2.mkv');
   });
+
+  test('completion=false does not advance', () async {
+    final c = container.read(playbackQueueProvider.notifier);
+    await c.loadSeries(_series());
+    fake.emitCompleted(false);
+    await Future<void>.delayed(Duration.zero);
+    expect(container.read(playbackQueueProvider).currentIndex, 0);
+  });
 }

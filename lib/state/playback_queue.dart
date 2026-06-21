@@ -22,9 +22,12 @@ class PlaybackQueueState {
 
 class PlaybackQueueController extends StateNotifier<PlaybackQueueState> {
   PlaybackQueueController(this._engine) : super(const PlaybackQueueState()) {
-    _completedSub = _engine.completedStream.listen((_) {
+    _completedSub = _engine.completedStream.listen((completed) {
+      if (!completed) return;
+      if (_advancing) return;
       if (autoNext && state.hasNext) {
-        next();
+        _advancing = true;
+        next().whenComplete(() => _advancing = false);
       }
     });
   }
@@ -32,6 +35,7 @@ class PlaybackQueueController extends StateNotifier<PlaybackQueueState> {
   final PlayerEngine _engine;
   late final StreamSubscription<bool> _completedSub;
   bool autoNext = true;
+  bool _advancing = false;
 
   Future<void> loadSeries(Series series, {int startAt = 0}) async {
     state = PlaybackQueueState(series: series, currentIndex: -1);
