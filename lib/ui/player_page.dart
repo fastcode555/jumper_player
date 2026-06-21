@@ -1,10 +1,9 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:jump_player/state/library_actions.dart';
 import 'package:jump_player/state/playback_providers.dart';
 import 'package:jump_player/state/ui_providers.dart';
+import 'package:jump_player/ui/control_bar.dart';
 import 'package:jump_player/ui/episode_sidebar.dart';
 
 class PlayerPage extends ConsumerWidget {
@@ -12,83 +11,38 @@ class PlayerPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final engine = ref.watch(playerEngineProvider);
-    final isPlaying = ref.watch(isPlayingProvider).value ?? false;
     final controller = ref.watch(videoControllerProvider);
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
+      body: Column(
         children: [
-          if (controller != null) Video(controller: controller),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                ElevatedButton(
-                  onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    final result = await FilePicker.platform.pickFiles(
-                      type: FileType.video,
-                    );
-                    if (result == null || result.files.isEmpty) return;
-                    final path = result.files.first.path;
-                    if (path == null) return;
-                    try {
-                      await engine.open(path);
-                      await engine.play();
-                    } catch (e) {
-                      messenger.showSnackBar(
-                        SnackBar(content: Text('无法播放该文件：$e')),
-                      );
-                    }
-                  },
-                  child: const Text('打开文件'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    final path = await FilePicker.platform.getDirectoryPath();
-                    if (path == null) return;
-                    try {
-                      await ref.read(libraryActionsProvider).openFolder(path);
-                    } catch (e) {
-                      messenger.showSnackBar(
-                        SnackBar(content: Text('无法扫描该文件夹：$e')),
-                      );
-                    }
-                  },
-                  child: const Text('打开文件夹'),
-                ),
-                IconButton(
-                  color: Colors.white,
-                  iconSize: 48,
-                  icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
-                  onPressed: () async {
-                    isPlaying ? await engine.pause() : await engine.play();
-                  },
+                if (controller != null) Video(controller: controller),
+                if (ref.watch(sidebarVisibleProvider))
+                  const Align(
+                    alignment: Alignment.centerRight,
+                    child: EpisodeSidebar(),
+                  ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: IconButton(
+                    tooltip: '剧集列表',
+                    color: Colors.white,
+                    icon: const Icon(Icons.playlist_play),
+                    onPressed: () =>
+                        ref.read(sidebarVisibleProvider.notifier).state =
+                            !ref.read(sidebarVisibleProvider),
+                  ),
                 ),
               ],
             ),
           ),
-          // 右侧可折叠剧集侧边栏
-          if (ref.watch(sidebarVisibleProvider))
-            const Align(
-              alignment: Alignment.centerRight,
-              child: EpisodeSidebar(),
-            ),
-          // 折叠/展开开关（左上角）
-          Positioned(
-            top: 8,
-            left: 8,
-            child: IconButton(
-              color: Colors.white,
-              icon: const Icon(Icons.playlist_play),
-              onPressed: () => ref.read(sidebarVisibleProvider.notifier).state =
-                  !ref.read(sidebarVisibleProvider),
-            ),
-          ),
+          const ControlBar(),
         ],
       ),
     );
