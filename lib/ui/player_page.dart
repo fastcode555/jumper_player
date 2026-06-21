@@ -25,13 +25,20 @@ class PlayerPage extends ConsumerWidget {
               children: [
                 ElevatedButton(
                   onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
                     final result = await FilePicker.platform.pickFiles(
                       type: FileType.video,
                     );
-                    final path = result?.files.single.path;
-                    if (path != null) {
+                    if (result == null || result.files.isEmpty) return;
+                    final path = result.files.first.path;
+                    if (path == null) return;
+                    try {
                       await engine.open(path);
                       await engine.play();
+                    } catch (e) {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text('无法播放该文件：$e')),
+                      );
                     }
                   },
                   child: const Text('打开文件'),
@@ -40,8 +47,9 @@ class PlayerPage extends ConsumerWidget {
                   color: Colors.white,
                   iconSize: 48,
                   icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
-                  onPressed: () =>
-                      isPlaying ? engine.pause() : engine.play(),
+                  onPressed: () async {
+                    isPlaying ? await engine.pause() : await engine.play();
+                  },
                 ),
               ],
             ),
