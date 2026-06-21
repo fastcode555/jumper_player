@@ -31,6 +31,23 @@ void main() {
     test('无数字返回 null', () {
       expect(EpisodeSorter.parse('片头曲.mkv'), isNull);
     });
+
+    // 新增：字幕组式命名（集号在中间，后跟分辨率/编码）
+    test('字幕组式 - 集号在中间，末尾有分辨率', () {
+      expect(EpisodeSorter.parse('[Lilith-Raws] 吞噬星空 - 01 [1080p].mp4')!.episode, 1);
+    });
+    test('字幕组式 - 集号两位 + WebRip HEVC', () {
+      expect(EpisodeSorter.parse('[组名] 吞噬星空 - 12 [WebRip 1080p HEVC].mkv')!.episode, 12);
+    });
+    test('字幕组式 - 英文组名 + x265', () {
+      expect(EpisodeSorter.parse('[Group] Show - 09 [720p][x265].mp4')!.episode, 9);
+    });
+    test('方括号集号 [08]', () {
+      expect(EpisodeSorter.parse('剧名[08].mp4')!.episode, 8);
+    });
+    test('字幕组式 - 三位集号 100', () {
+      expect(EpisodeSorter.parse('吞噬星空 - 100 [1080p].mp4')!.episode, 100);
+    });
   });
 
   group('compareNatural', () {
@@ -67,6 +84,21 @@ void main() {
       ];
       final sorted = EpisodeSorter.sort(items);
       expect(sorted.map((e) => e.fileName), ['S1E2.mkv', 'S2E1.mkv']);
+    });
+
+    // 新增：字幕组式命名排序
+    test('字幕组式命名按集号数值排序', () {
+      final fileNames = [
+        '[G] X - 2 [1080p].mp4',
+        '[G] X - 10 [1080p].mp4',
+        '[G] X - 1 [1080p].mp4',
+      ];
+      final items = fileNames.map((f) {
+        final p = EpisodeSorter.parse(f);
+        return Episode(path: '/a/$f', fileName: f, episodeNumber: p?.episode);
+      }).toList();
+      final sorted = EpisodeSorter.sort(items);
+      expect(sorted.map((e) => e.episodeNumber), [1, 2, 10]);
     });
   });
 }
