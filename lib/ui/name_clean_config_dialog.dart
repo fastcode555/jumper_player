@@ -56,6 +56,12 @@ class _NameCleanConfigDialogState extends ConsumerState<NameCleanConfigDialog> {
   }
 
   Future<void> _save() async {
+    // Flush any snippet left typed in the input box that the user didn't
+    // commit with the "+" button — saving should not silently drop it.
+    final pending = _input.text.trim();
+    if (pending.isNotEmpty && !_snippets.contains(pending)) {
+      _snippets.add(pending);
+    }
     final cfg = NameCleanConfig(
       enabledBuiltinRules: _rules,
       customSnippets: _snippets,

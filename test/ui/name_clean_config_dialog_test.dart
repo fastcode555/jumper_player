@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jump_player/domain/library/name_clean_config.dart';
 import 'package:jump_player/state/library_actions.dart';
+import 'package:jump_player/state/name_clean_providers.dart';
 import 'package:jump_player/ui/name_clean_config_dialog.dart';
 
 /// A fake that satisfies the libraryActionsProvider override.
@@ -81,5 +82,26 @@ void main() {
     // A SnackBar with error message should appear.
     expect(find.byType(SnackBar), findsOneWidget);
     expect(find.textContaining('无法重新生成命名'), findsOneWidget);
+  });
+
+  testWidgets('保存时自动提交输入框里未点 + 的片段', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: Scaffold(body: NameCleanConfigDialog())),
+    ));
+    await tester.pumpAndSettle();
+
+    // 在输入框打字，但不点 "+" 直接保存。
+    await tester.enterText(
+        find.byKey(const Key('snippet-input')), '最新电影www.dyg7.com');
+    await tester.tap(find.byKey(const Key('config-save')));
+    await tester.pumpAndSettle();
+
+    expect(container.read(nameCleanConfigProvider).customSnippets,
+        contains('最新电影www.dyg7.com'));
   });
 }
