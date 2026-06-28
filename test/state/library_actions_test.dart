@@ -351,4 +351,51 @@ void main() {
         SeriesGroup(title: 'root', episodes: [], dirPath: tmp.path);
     expect(() => actions.deleteFolder(rootGroup), throwsStateError);
   });
+
+  test(
+      'renameFolder keeps playback position when currently-playing episode is inside the renamed folder',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final tmp = Directory.systemTemp.createTempSync('rnf_play_');
+    addTearDown(
+        () => tmp.existsSync() ? tmp.deleteSync(recursive: true) : null);
+    Directory('${tmp.path}/old').createSync();
+    File('${tmp.path}/old/01.mp4').writeAsStringSync('x');
+    File('${tmp.path}/old/02.mp4').writeAsStringSync('x');
+
+    final fake = FakePlayerEngine();
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(fake),
+    ]);
+    addTearDown(container.dispose);
+    final actions = container.read(libraryActionsProvider);
+    await actions.openFolder(tmp.path);
+
+    // play the first episode inside old/
+    final epBefore = container.read(playbackQueueProvider).currentEpisode!;
+    expect(epBefore.path, contains('/old/'));
+    final baseNameBefore = epBefore.path.split('/').last;
+    final openCountBefore = fake.openCount;
+
+    final g = container
+        .read(playbackQueueProvider)
+        .series!
+        .groups
+        .firstWhere((e) => e.dirPath == '${tmp.path}/old');
+    await actions.renameFolder(g, 'new');
+
+    final state = container.read(playbackQueueProvider);
+    // currentIndex must NOT be -1
+    expect(state.currentIndex, isNot(-1),
+        reason: 'queue lost its position (currentIndex became -1)');
+    // currentEpisode path must be under new/ not old/
+    expect(state.currentEpisode, isNotNull);
+    expect(state.currentEpisode!.path, startsWith('${tmp.path}/new/'),
+        reason: 'path still points into old/ after rename');
+    // same file (same basename)
+    expect(state.currentEpisode!.path.split('/').last, equals(baseNameBefore));
+    // engine not reopened
+    expect(fake.openCount, openCountBefore,
+        reason: 'renameFolder must not interrupt playback');
+  });
 }

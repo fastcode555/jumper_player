@@ -60,8 +60,19 @@ class LibraryActions {
     if (isRootGroup(group)) {
       throw StateError('Cannot rename the opened root folder');
     }
-    await _ops.renameDirectory(group.dirPath, newName);
-    await _rescan();
+    final oldDir = group.dirPath;
+    final newDir = await _ops.renameDirectory(oldDir, newName);
+    final root = _currentRoot;
+    if (root == null) return;
+    final config = _ref.read(nameCleanConfigProvider);
+    final series = await _scanner.scan(root, config);
+    final currentPath = _ref.read(playbackQueueProvider).currentEpisode?.path;
+    if (currentPath != null && currentPath.startsWith('$oldDir/')) {
+      final newPath = '$newDir${currentPath.substring(oldDir.length)}';
+      _queue.remapSeriesByPath(series, oldPath: currentPath, newPath: newPath);
+    } else {
+      _queue.remapSeries(series);
+    }
   }
 
   Future<void> deleteFolder(SeriesGroup group) async {
