@@ -124,10 +124,87 @@ void main() {
     // displayName shown (not raw fileName)
     expect(find.text('逆天邪神 第2季 01'), findsOneWidget);
 
+    // With collapsible UX: group A is auto-expanded (current), group B is collapsed.
+    // Expand group B first, then tap its episode.
+    await tester.tap(find.text('成何体统'));
+    await tester.pump();
+
     // Tapping second group's first item plays global index 2
     await tester.tap(find.text('成何体统 01'));
     await tester.pump();
     expect(container.read(playbackQueueProvider).currentIndex, 2);
     expect(fake.openedPath, '/b/1');
+  });
+
+  testWidgets('分组默认收起，正在播放的组自动展开', (tester) async {
+    final fake = FakePlayerEngine();
+    final container = ProviderContainer(
+        overrides: [playerEngineProvider.overrideWithValue(fake)]);
+    addTearDown(container.dispose);
+    await container.read(playbackQueueProvider.notifier).loadSeries(Series(
+            name: 'lib',
+            rootPath: '/lib',
+            groups: [
+              SeriesGroup(title: 'A', dirPath: '/lib/A', episodes: [
+                Episode(
+                    path: '/lib/A/1',
+                    fileName: '1',
+                    displayName: 'A 01',
+                    episodeNumber: 1)
+              ]),
+              SeriesGroup(title: 'B', dirPath: '/lib/B', episodes: [
+                Episode(
+                    path: '/lib/B/1',
+                    fileName: '1',
+                    displayName: 'B 01',
+                    episodeNumber: 1)
+              ]),
+            ]));
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: Scaffold(body: EpisodeSidebar()))));
+    await tester.pump();
+    expect(find.text('A'), findsOneWidget); // header
+    expect(find.text('B'), findsOneWidget); // header
+    expect(find.text('A 01'), findsOneWidget); // A expanded (current)
+    expect(find.text('B 01'), findsNothing); // B collapsed
+    // tap B header -> expands
+    await tester.tap(find.text('B'));
+    await tester.pump();
+    expect(find.text('B 01'), findsOneWidget);
+  });
+
+  testWidgets('组菜单有 打开所在位置/重命名/删除；文件菜单含 删除', (tester) async {
+    final container = ProviderContainer(
+        overrides: [playerEngineProvider.overrideWithValue(FakePlayerEngine())]);
+    addTearDown(container.dispose);
+    await container.read(playbackQueueProvider.notifier).loadSeries(Series(
+            name: 'lib',
+            rootPath: '/lib',
+            groups: [
+              SeriesGroup(title: 'A', dirPath: '/lib/A', episodes: [
+                Episode(
+                    path: '/lib/A/1',
+                    fileName: '1',
+                    displayName: 'A 01',
+                    episodeNumber: 1)
+              ]),
+            ]));
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: Scaffold(body: EpisodeSidebar()))));
+    await tester.pump();
+    // open folder menu (header trailing more)
+    await tester.tap(find.byKey(const Key('folder-menu-/lib/A')));
+    await tester.pumpAndSettle();
+    expect(find.text('打开所在位置'), findsOneWidget);
+    expect(find.text('重命名'), findsOneWidget);
+    expect(find.text('删除'), findsWidgets);
+    // dismiss menu then open episode menu
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.more_vert).last);
+    await tester.pumpAndSettle();
+    expect(find.text('删除'), findsWidgets);
   });
 }
