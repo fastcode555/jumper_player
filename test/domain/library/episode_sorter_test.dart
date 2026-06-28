@@ -58,7 +58,7 @@ void main() {
 
   group('sort', () {
     test('按集号数值排序而非字典序', () {
-      const items = [
+      final items = [
         Episode(path: '/a/第10集.mkv', fileName: '第10集.mkv', episodeNumber: 10),
         Episode(path: '/a/第2集.mkv', fileName: '第2集.mkv', episodeNumber: 2),
         Episode(path: '/a/第1集.mkv', fileName: '第1集.mkv', episodeNumber: 1),
@@ -68,7 +68,7 @@ void main() {
     });
 
     test('有集号的排在无集号之前；无集号按自然名', () {
-      const items = [
+      final items = [
         Episode(path: '/a/花絮.mkv', fileName: '花絮.mkv'),
         Episode(path: '/a/E2.mkv', fileName: 'E2.mkv', episodeNumber: 2),
         Episode(path: '/a/E1.mkv', fileName: 'E1.mkv', episodeNumber: 1),
@@ -78,7 +78,7 @@ void main() {
     });
 
     test('按季再按集', () {
-      const items = [
+      final items = [
         Episode(path: '/a/S2E1.mkv', fileName: 'S2E1.mkv', season: 2, episodeNumber: 1),
         Episode(path: '/a/S1E2.mkv', fileName: 'S1E2.mkv', season: 1, episodeNumber: 2),
       ];

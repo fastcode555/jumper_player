@@ -7,6 +7,12 @@ import 'package:jump_player/state/playback_providers.dart';
 import 'package:jump_player/state/playback_queue.dart';
 import 'package:jump_player/ui/episode_sidebar.dart';
 
+Series singleGroupSeries(List<Episode> eps, {String name = 's'}) => Series(
+      name: name,
+      rootPath: '/$name',
+      groups: [SeriesGroup(title: name, episodes: eps)],
+    );
+
 void main() {
   testWidgets('lists episodes and highlights current; tap jumps', (tester) async {
     final fake = FakePlayerEngine();
@@ -16,10 +22,10 @@ void main() {
     addTearDown(container.dispose);
 
     await container.read(playbackQueueProvider.notifier).loadSeries(
-          const Series(name: 'X', rootPath: '/x', episodes: [
+          singleGroupSeries([
             Episode(path: '/x/e1.mkv', fileName: 'e1.mkv', episodeNumber: 1),
             Episode(path: '/x/e2.mkv', fileName: 'e2.mkv', episodeNumber: 2),
-          ]),
+          ], name: 'X'),
         );
 
     await tester.pumpWidget(

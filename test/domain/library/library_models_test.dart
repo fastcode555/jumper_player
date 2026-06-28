@@ -2,22 +2,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:jump_player/domain/library/library_models.dart';
 
 void main() {
-  test('Episode equality is based on path', () {
-    const a = Episode(path: '/x/e1.mkv', fileName: 'e1.mkv', episodeNumber: 1);
-    const b = Episode(path: '/x/e1.mkv', fileName: 'e1.mkv', episodeNumber: 1);
-    const c = Episode(path: '/x/e2.mkv', fileName: 'e2.mkv', episodeNumber: 2);
-    expect(a, b);
-    expect(a == c, isFalse);
+  test('Episode.displayName 缺省回退 fileName', () {
+    final e = Episode(path: '/a/x.mkv', fileName: 'x.mkv');
+    expect(e.displayName, 'x.mkv');
   });
 
-  test('Series holds ordered episodes', () {
-    const eps = [
-      Episode(path: '/x/e1.mkv', fileName: 'e1.mkv', episodeNumber: 1),
-      Episode(path: '/x/e2.mkv', fileName: 'e2.mkv', episodeNumber: 2),
-    ];
-    const s = Series(name: 'X', rootPath: '/x', episodes: eps);
-    expect(s.name, 'X');
-    expect(s.episodes.length, 2);
-    expect(s.episodes.first.episodeNumber, 1);
+  test('Episode 相等基于 path', () {
+    final a = Episode(path: '/a', fileName: 'a', displayName: 'A');
+    final b = Episode(path: '/a', fileName: 'b', displayName: 'B');
+    expect(a, b);
+  });
+
+  test('Series.episodes 展平所有组', () {
+    final s = Series(name: 's', rootPath: '/s', groups: [
+      SeriesGroup(title: 'g1', episodes: [Episode(path: '/1', fileName: '1')]),
+      SeriesGroup(title: 'g2', episodes: [
+        Episode(path: '/2', fileName: '2'),
+        Episode(path: '/3', fileName: '3'),
+      ]),
+    ]);
+    expect(s.episodes.map((e) => e.path), ['/1', '/2', '/3']);
   });
 }

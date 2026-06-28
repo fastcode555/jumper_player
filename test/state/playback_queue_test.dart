@@ -5,11 +5,17 @@ import 'package:jump_player/domain/playback/player_engine.dart';
 import 'package:jump_player/state/playback_providers.dart';
 import 'package:jump_player/state/playback_queue.dart';
 
-Series _series() => const Series(name: 'X', rootPath: '/x', episodes: [
+Series singleGroupSeries(List<Episode> eps, {String name = 's'}) => Series(
+      name: name,
+      rootPath: '/$name',
+      groups: [SeriesGroup(title: name, episodes: eps)],
+    );
+
+Series _series() => singleGroupSeries([
       Episode(path: '/x/e1.mkv', fileName: 'e1.mkv', episodeNumber: 1),
       Episode(path: '/x/e2.mkv', fileName: 'e2.mkv', episodeNumber: 2),
       Episode(path: '/x/e3.mkv', fileName: 'e3.mkv', episodeNumber: 3),
-    ]);
+    ], name: 'X');
 
 void main() {
   late FakePlayerEngine fake;
