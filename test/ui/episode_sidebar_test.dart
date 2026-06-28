@@ -44,4 +44,61 @@ void main() {
     expect(fake.openedPath, '/x/e2.mkv');
     expect(container.read(playbackQueueProvider).currentIndex, 1);
   });
+
+  testWidgets('分组渲染：组标题 + 干净显示名，点击播放对应全局索引', (tester) async {
+    final fake = FakePlayerEngine();
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(fake),
+    ]);
+    addTearDown(container.dispose);
+
+    final series = Series(
+      name: 'lib',
+      rootPath: '/lib',
+      groups: [
+        SeriesGroup(title: '逆天邪神 第2季', episodes: [
+          Episode(
+              path: '/a/1',
+              fileName: 'f1',
+              displayName: '逆天邪神 第2季 01',
+              episodeNumber: 1),
+          Episode(
+              path: '/a/2',
+              fileName: 'f2',
+              displayName: '逆天邪神 第2季 02',
+              episodeNumber: 2),
+        ]),
+        SeriesGroup(title: '成何体统', episodes: [
+          Episode(
+              path: '/b/1',
+              fileName: 'g1',
+              displayName: '成何体统 01',
+              episodeNumber: 1),
+        ]),
+      ],
+    );
+
+    await container.read(playbackQueueProvider.notifier).loadSeries(series);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: Scaffold(body: EpisodeSidebar())),
+      ),
+    );
+    await tester.pump();
+
+    // Group headers present
+    expect(find.text('逆天邪神 第2季'), findsOneWidget);
+    expect(find.text('成何体统'), findsOneWidget);
+
+    // displayName shown (not raw fileName)
+    expect(find.text('逆天邪神 第2季 01'), findsOneWidget);
+
+    // Tapping second group's first item plays global index 2
+    await tester.tap(find.text('成何体统 01'));
+    await tester.pump();
+    expect(container.read(playbackQueueProvider).currentIndex, 2);
+    expect(fake.openedPath, '/b/1');
+  });
 }
