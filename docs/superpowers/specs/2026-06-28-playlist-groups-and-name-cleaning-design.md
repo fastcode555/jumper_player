@@ -79,13 +79,17 @@ enabledBuiltinRules: Set<BuiltinNoiseRule>   // 默认全开
 customSnippets: List<String>                 // 用户自定义精确子串
 ```
 
-`BuiltinNoiseRule` 枚举（每项对应 EpisodeSorter `_noiseTokens` 中的一段正则）：
+`BuiltinNoiseRule` 枚举（默认全开）：
 
-- `bracketGroups`   — `[...]` 方括号组
-- `parenGroups`     — `(...)` 圆括号组
+- `latinBracketTags` — **丢弃内容为纯 ASCII 的括号组**（`[GM-Team]`/`[What A Scandal]`/`[HEVC]`/`[GB]`/`[4K]` 等发布组/编码标签）；中文等非 ASCII 括号内容保留。
 - `resolution`      — `\d{3,4}[pi]` 与命名分辨率（4k/2k/2160p/1080p/720p/480p）
 - `codecSource`     — x264/x265/h264/h265/hevc/avc/aac/flac/web-rip/web-dl/bluray/bdrip/dts/ddp5.1
 - `year`            — `(19|20)\d{2}`
+
+> **重要（2026-06-28 修订）**：早期设计有 `bracketGroups`/`parenGroups` 两个"删除整个括号组内容"的规则，
+> 实测对全方括号命名（如 `[GM-Team][国漫][成何体统][What A Scandal][2024][01][HEVC][GB][4K].mp4`）
+> 会把真正的剧名 `[成何体统]` 一并删光、再回退成原始名，导致配置形同无效。已改为下述
+> **「括号当分隔符 + 指定片段精确删除 + 自动丢纯 ASCII 标签」** 模型。
 
 ### NameCleaner（domain，纯函数，无 IO）
 
@@ -94,27 +98,27 @@ customSnippets: List<String>                 // 用户自定义精确子串
 
 步骤：
 
-1. **先解析集号/季**：调用 `EpisodeSorter.parse(rawFileName)` 取 `season/episode`（其内部逻辑
-   不变，确保集号识别在清洗之前完成——注意方括号纯数字集号 `[01]` 必须在删括号组之前提取）。
-2. **去扩展名**得到 stem。
-3. **删内置规则命中片段**：按 `enabledBuiltinRules` 选择性应用对应正则替换为空格。
-4. **删自定义片段**：对 `customSnippets` 逐条做字面子串删除（大小写不敏感）。
-5. **归一化**：折叠多余空白与残留分隔符（`._-` 连续段 → 单空格）、trim。
-6. **得 seriesTitle**：在 4/5 之后，从结果中移除集号 token（`SxxEyy`、`第N集/话/話/期`、
-   `EP12`、`[01]` 方括号纯数字集号）得到剧名。**注意不要盲删所有裸数字**（会破坏中文标题里
-   的 `第2季` 等），只删上述明确的集号 token。
-7. **seriesTitle 兜底**：若第 6 步结果为空、或归一化后只剩纯数字（如 `01`），则
-   `seriesTitle = NameCleaner.clean(parentDirName, config).displayName`（即对父文件夹名套用
-   同一套清洗，取其结果；为避免递归，对目录名只走 2–5 步清洗，不取集号）。
-8. **displayName**：有集号时 = `seriesTitle 规范化集号`（集号补零两位，如 `逆天邪神 第2季 01`）；
-   无集号时 = 清洗后的 stem（若为空再回退原始去扩展名 stem）。
+1. **先解析集号/季**：调用 `EpisodeSorter.parse(rawFileName)` 取 `season/episode`（基于**原始**文件名）。
+2. **去扩展名**得到 stem，作为工作串。
+3. **按顺序清洗**（顺序很重要）：
+   a. **自定义片段**先删（字面子串、大小写不敏感）。**先于括号处理**，使用户输入的 `[国漫]` 或
+      `国漫` 都能命中。
+   b. **模式规则**（启用时）：resolution / codecSource / year 命中处替换为空格
+      （于是 `[2160p]`/`[HEVC]`/`[2024]` 的内容被清掉、留下空括号）。
+   c. **括号/圆括号组处理**（半角 `[...]`、`(...)`）：内容为纯 ASCII 且 `latinBracketTags` 开 →
+      整组删；否则去括号符号、保留内容（`[成何体统]`→`成何体统`）；空组删除。
+   d. **归一化**：`[\s._]+` 连续段 → 单空格、trim（**保留连字符**，使 `GM-Team` 等不被拆开）。
+4. **seriesTitle**：对结果剥离明确的集号 token（`SxxEyy`、`第N集/话/話/期`、`EPxx`、`[01]`），
+   **不盲删裸数字**（保住 `第2季`）。为空或纯数字 → 回退 `cleanDir(parentDirName)`；仍为空 → 原始 stem。
+5. **displayName**：有集号 = `seriesTitle 两位集号`；无集号 = 清洗后的 stem。
 
 > 边界：清洗只影响显示名与分组键；集号解析始终基于**原始**文件名，避免清洗误删集号。
 
 ### 持久化
 
 `infra/config/PreferencesConfigStore`：用 `shared_preferences` 把 `NameCleanConfig` 存成一个
-JSON 字符串键（如 `name_clean_config_v1`）。读：无值时返回默认（全部内置规则开、无自定义片段）。
+JSON 字符串键 `name_clean_config_v2`（清洗模型改版后从 v1 升到 v2，旧值忽略→回退默认）。
+读：无值时返回默认（全部内置规则开、无自定义片段）。
 
 ### 配置对话框（ui）
 
