@@ -3,9 +3,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:jump_player/domain/library/library_models.dart';
 import 'package:jump_player/domain/playback/player_engine.dart';
+import 'package:jump_player/state/library_actions.dart';
 import 'package:jump_player/state/playback_providers.dart';
 import 'package:jump_player/state/playback_queue.dart';
 import 'package:jump_player/ui/episode_sidebar.dart';
+
+/// deleteEpisode always throws; all other methods are stubs.
+class _ThrowingActions implements LibraryActions {
+  @override
+  Future<void> deleteEpisode(Episode ep) async {
+    throw Exception('move to trash failed');
+  }
+
+  @override
+  bool isRootGroup(SeriesGroup group) => false;
+
+  @override
+  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
+}
 
 Series singleGroupSeries(List<Episode> eps, {String name = 's'}) => Series(
       name: name,
@@ -207,5 +222,35 @@ void main() {
     await tester.tap(find.byIcon(Icons.more_vert).last);
     await tester.pumpAndSettle();
     expect(find.text('删除'), findsWidgets);
+  });
+
+  testWidgets('deleteEpisode 失败时 SnackBar 显示「删除失败」', (tester) async {
+    final throwing = _ThrowingActions();
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(FakePlayerEngine()),
+      libraryActionsProvider.overrideWithValue(throwing),
+    ]);
+    addTearDown(container.dispose);
+
+    // Load a single-group series; the playing group auto-expands.
+    await container.read(playbackQueueProvider.notifier).loadSeries(
+          singleGroupSeries([
+            Episode(path: '/x/e1.mkv', fileName: 'e1.mkv', episodeNumber: 1),
+          ], name: 'X'),
+        );
+
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: Scaffold(body: EpisodeSidebar())),
+    ));
+    await tester.pump();
+
+    // Open the episode more-menu and tap 删除.
+    await tester.tap(find.byIcon(Icons.more_vert).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('删除失败'), findsOneWidget);
   });
 }

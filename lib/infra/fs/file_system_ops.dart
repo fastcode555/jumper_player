@@ -11,6 +11,7 @@ typedef ProcessRunner = Future<void> Function(
   return (executable: 'osascript', args: ['-e', script]);
 }
 
+// Paths are scanner-sourced (trusted filesystem enumeration, never user free-text), so minimal escaping is safe.
 String _appleScriptString(String s) =>
     '"${s.replaceAll(r'\', r'\\').replaceAll('"', r'\"')}"';
 

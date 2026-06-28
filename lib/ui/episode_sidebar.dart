@@ -114,6 +114,7 @@ class EpisodeSidebar extends ConsumerWidget {
             trailing: PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Colors.white70),
               onSelected: (v) async {
+                final messenger = ScaffoldMessenger.of(context);
                 final a = ref.read(libraryActionsProvider);
                 if (v == 'reveal') {
                   a.revealEpisode(ep);
@@ -121,7 +122,12 @@ class EpisodeSidebar extends ConsumerWidget {
                   // ignore: use_build_context_synchronously
                   await showRenameEpisodeDialog(context, ep);
                 } else if (v == 'delete') {
-                  a.deleteEpisode(ep);
+                  try {
+                    await a.deleteEpisode(ep);
+                  } catch (e) {
+                    messenger.showSnackBar(
+                        SnackBar(content: Text('删除失败：$e')));
+                  }
                 }
               },
               itemBuilder: (_) => const [
