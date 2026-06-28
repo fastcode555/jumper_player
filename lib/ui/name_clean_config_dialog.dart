@@ -10,6 +10,7 @@ const Map<BuiltinNoiseRule, String> kRuleLabels = {
   BuiltinNoiseRule.resolution: '分辨率（1080p/2160p…）',
   BuiltinNoiseRule.codecSource: '编码/来源（x265/WEB-DL/BluRay…）',
   BuiltinNoiseRule.year: '年份（19xx/20xx）',
+  BuiltinNoiseRule.url: '网址/发布站（www…/最新电影…）',
 };
 
 Future<void> showNameCleanConfigDialog(BuildContext context) {

@@ -27,6 +27,9 @@ class NameCleaner {
         r'|web-?rip|web-?dl|webdl|bluray|bdrip|dts|ddp?5?\.?1)\b',
         caseSensitive: false),
     BuiltinNoiseRule.year: RegExp(r'\b(?:19|20)\d{2}\b'),
+    BuiltinNoiseRule.url: RegExp(
+        r'(?:最新电影|最新电视剧|最新电视)?\s*(?:https?://)?(?:www\.[\w.-]+|[\w-]+\.(?:com|net|cn|cc|tv|me|org|xyz|top|vip|app|io))(?:/\S*)?',
+        caseSensitive: false),
   };
 
   // 派生剧名时剥离的集号 token（不盲删裸数字，以保护「第2季」等）。
@@ -60,10 +63,11 @@ class NameCleaner {
           RegExp(RegExp.escape(snippet), caseSensitive: false), ' ');
     }
 
-    // 3b. Pattern rules (resolution / codecSource / year) — replace matches
-    //     inside the working string with spaces so bracket interiors become
-    //     empty after the rule fires (e.g. `[2024]` → `[ ]`).
+    // 3b. Pattern rules (resolution / codecSource / year / url) — replace
+    //     matches inside the working string with spaces so bracket interiors
+    //     become empty after the rule fires (e.g. `[2024]` → `[ ]`).
     for (final rule in [
+      BuiltinNoiseRule.url,
       BuiltinNoiseRule.resolution,
       BuiltinNoiseRule.codecSource,
       BuiltinNoiseRule.year,
@@ -108,6 +112,14 @@ class NameCleaner {
     return _normalize(s);
   }
 
+  /// Remove a standalone occurrence of [n] (with optional leading zeros)
+  /// bounded by whitespace or string edges. Does NOT touch CJK-adjacent
+  /// digits like the `2` in `第2季`.
+  static String _stripStandaloneNumber(String s, int n) {
+    final re = RegExp(r'(^|\s)0*' + n.toString() + r'(?=\s|$)');
+    return s.replaceAll(re, ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
   static String _pad(int n) => n.toString().padLeft(2, '0');
 
   static String cleanDir(String dirName, NameCleanConfig config) {
@@ -128,13 +140,18 @@ class NameCleaner {
 
     // Step 4: derive seriesTitle by stripping episode tokens from cleanedStem.
     var title = _stripEpisodeTokens(cleanedStem);
+    // Also strip a standalone bare episode number so it isn't duplicated when
+    // the episode suffix is appended in step 5 (e.g. title "01 HD…" → "HD…").
+    final ep = parsed?.episode;
+    if (ep != null) {
+      title = _stripStandaloneNumber(title, ep);
+    }
     if (title.isEmpty || _digitsOnly.hasMatch(title)) {
       title = cleanDir(parentDirName, config);
     }
     if (title.isEmpty) title = stem;
 
     // Step 5: displayName.
-    final ep = parsed?.episode;
     final String displayName;
     if (ep != null) {
       displayName = '$title ${_pad(ep)}';

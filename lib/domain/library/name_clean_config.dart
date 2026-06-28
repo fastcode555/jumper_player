@@ -5,6 +5,7 @@ enum BuiltinNoiseRule {
   resolution,
   codecSource,
   year,
+  url,
 }
 
 class NameCleanConfig {
@@ -22,6 +23,7 @@ class NameCleanConfig {
       BuiltinNoiseRule.resolution,
       BuiltinNoiseRule.codecSource,
       BuiltinNoiseRule.year,
+      BuiltinNoiseRule.url,
     },
     customSnippets: <String>[],
   );

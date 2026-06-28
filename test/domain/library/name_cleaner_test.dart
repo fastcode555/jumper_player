@@ -115,4 +115,62 @@ void main() {
     expect(r.seriesTitle, '阿凡达');
     expect(r.displayName, '阿凡达');
   });
+
+  // ── New canonical tests for url rule and duplicate-episode-strip ──────────
+
+  // Canonical A1: url rule strips domain noise and leading ad-prefix;
+  // standalone episode number stripped from title so ep appended only once.
+  test('canonical A1: url rule removes domain noise, no duplicate episode number', () {
+    final r = NameCleaner.clean(
+      '01.1080p.HD国语中字无水印[最新电影www.5266ys.com].mkv',
+      'X',
+      cfg,
+    );
+    expect(r.episodeNumber, 1);
+    expect(r.seriesTitle, 'HD国语中字无水印');
+    expect(r.displayName, 'HD国语中字无水印 01');
+  });
+
+  // Canonical A2: [GM-Team] test unchanged by these changes.
+  test('canonical A2: GM-Team CJK bracket unchanged by url/dup-strip', () {
+    final r = NameCleaner.clean(
+      '[GM-Team][国漫][成何体统][What A Scandal][2024][01][HEVC][GB][4K].mp4',
+      'X',
+      cfg,
+    );
+    expect(r.episodeNumber, 1);
+    expect(r.seriesTitle, '国漫 成何体统');
+    expect(r.displayName, '国漫 成何体统 01');
+  });
+
+  // Canonical A3: season number 第2季 must NOT be stripped.
+  test('canonical A3: 第2季 preserved, standalone-strip does not remove season digit', () {
+    final r = NameCleaner.clean('逆天邪神 第2季 第05集.mp4', 'X', cfg);
+    expect(r.episodeNumber, 5);
+    expect(r.seriesTitle, '逆天邪神 第2季');
+    expect(r.displayName, '逆天邪神 第2季 05');
+  });
+
+  // Canonical A4: url rule off → domain stays in display name.
+  test('canonical A4: url rule off keeps domain text', () {
+    final cfgNoUrl = NameCleanConfig(
+      enabledBuiltinRules: {
+        BuiltinNoiseRule.latinBracketTags,
+        BuiltinNoiseRule.resolution,
+        BuiltinNoiseRule.codecSource,
+        BuiltinNoiseRule.year,
+      },
+      customSnippets: const [],
+    );
+    final r = NameCleaner.clean(
+      '01.HD[最新电影www.5266ys.com].mp4',
+      'X',
+      cfgNoUrl,
+    );
+    // domain text should still be present when url rule is off
+    expect(
+      r.displayName.contains('www') || r.displayName.contains('5266ys'),
+      isTrue,
+    );
+  });
 }
