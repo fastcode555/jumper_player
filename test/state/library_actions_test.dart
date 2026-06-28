@@ -52,11 +52,12 @@ void main() {
     final tmp = Directory.systemTemp.createTempSync('lib_actions_reapply_');
     addTearDown(() => tmp.deleteSync(recursive: true));
 
-    // Files with a noise token "1080p" that the resolution rule will strip.
-    // After openFolder with defaults (resolution rule ON), displayName loses "1080p".
-    // We then disable ALL builtin rules, add a custom snippet to see the change.
-    File('${tmp.path}/逆天邪神 第01集 1080p.mp4').writeAsStringSync('x');
-    File('${tmp.path}/逆天邪神 第02集 1080p.mp4').writeAsStringSync('x');
+    // Sub-folder containing files with a noise token "1080p" that the resolution
+    // rule will strip from displayName. With folder-based grouping the group
+    // title comes from the folder name, not from the file's series title.
+    final sub = Directory('${tmp.path}/逆天邪神 1080p')..createSync();
+    File('${sub.path}/第01集.mp4').writeAsStringSync('x');
+    File('${sub.path}/第02集.mp4').writeAsStringSync('x');
 
     final fake = FakePlayerEngine();
     final container = ProviderContainer(overrides: [
@@ -72,15 +73,16 @@ void main() {
     final ep1PathBefore = stateBefore.currentEpisode?.path;
     expect(ep1PathBefore, isNotNull);
 
-    // The series title under defaults should not contain "1080p" (stripped).
+    // With resolution rule ON, the group title (folder basename cleaned)
+    // should not contain "1080p".
     final titleBefore = stateBefore.series?.groups.first.title ?? '';
     expect(titleBefore, isNot(contains('1080p')));
 
-    // Save a new config: disable ALL builtin rules so "1080p" is preserved,
-    // and add a custom snippet that should be stripped.
+    // Save a new config: disable ALL builtin rules so "1080p" is preserved
+    // in the group title.
     final newConfig = NameCleanConfig(
       enabledBuiltinRules: const {},
-      customSnippets: const ['第01集', '第02集'],
+      customSnippets: const [],
     );
     await container.read(nameCleanConfigProvider.notifier).save(newConfig);
 
@@ -93,7 +95,8 @@ void main() {
     final stateAfter = container.read(playbackQueueProvider);
     expect(stateAfter.episodes.length, 2);
 
-    // With builtin rules OFF, "1080p" should now appear in the title.
+    // With builtin rules OFF, "1080p" should now appear in the group title
+    // (folder name no longer cleaned of resolution tokens).
     final titleAfter = stateAfter.series?.groups.first.title ?? '';
     expect(titleAfter, contains('1080p'));
 

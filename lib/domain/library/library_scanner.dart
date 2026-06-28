@@ -24,7 +24,8 @@ class LibraryScanner {
       final ext = _extension(name).toLowerCase();
       if (!videoExtensions.contains(ext)) continue;
 
-      final parentDir = _baseName(_parentPath(entity.path));
+      final parentDirPath = _parentPath(entity.path);
+      final parentDir = _baseName(parentDirPath);
       final cleaned = NameCleaner.clean(name, parentDir, config);
       final episode = Episode(
         path: entity.path,
@@ -33,14 +34,21 @@ class LibraryScanner {
         season: cleaned.season,
         episodeNumber: cleaned.episodeNumber,
       );
-      groupsMap.putIfAbsent(cleaned.seriesTitle, () => []).add(episode);
+      groupsMap.putIfAbsent(parentDirPath, () => []).add(episode);
     }
 
-    final titles = groupsMap.keys.toList()
-      ..sort(EpisodeSorter.compareNatural);
+    // Build groups: key is parent dir path, title is cleaned dir basename.
+    final dirPaths = groupsMap.keys.toList()
+      ..sort((a, b) => EpisodeSorter.compareNatural(
+            NameCleaner.cleanDir(_baseName(a), config),
+            NameCleaner.cleanDir(_baseName(b), config),
+          ));
     final groups = [
-      for (final t in titles)
-        SeriesGroup(title: t, episodes: EpisodeSorter.sort(groupsMap[t]!)),
+      for (final dirPath in dirPaths)
+        SeriesGroup(
+          title: NameCleaner.cleanDir(_baseName(dirPath), config),
+          episodes: EpisodeSorter.sort(groupsMap[dirPath]!),
+        ),
     ];
 
     return Series(name: _baseName(rootPath), rootPath: rootPath, groups: groups);
