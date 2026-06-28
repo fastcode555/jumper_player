@@ -32,4 +32,22 @@ void main() {
     expect(container.read(isFullScreenProvider), isTrue);
     expect(fakeWin.fullScreen, isTrue);
   });
+
+  testWidgets('控制栏含剧集列表与命名配置按钮', (tester) async {
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(FakePlayerEngine()),
+      windowControllerProvider.overrideWithValue(FakeWindowController()),
+    ]);
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: Scaffold(body: ControlBar())),
+      ),
+    );
+
+    expect(find.byTooltip('剧集列表'), findsOneWidget);
+    expect(find.byTooltip('命名配置'), findsOneWidget);
+  });
 }

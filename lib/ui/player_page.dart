@@ -27,18 +27,6 @@ class PlayerPage extends ConsumerWidget {
                     alignment: Alignment.centerRight,
                     child: EpisodeSidebar(),
                   ),
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: IconButton(
-                    tooltip: '剧集列表',
-                    color: Colors.white,
-                    icon: const Icon(Icons.playlist_play),
-                    onPressed: () =>
-                        ref.read(sidebarVisibleProvider.notifier).state =
-                            !ref.read(sidebarVisibleProvider),
-                  ),
-                ),
               ],
             ),
           ),

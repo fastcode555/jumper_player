@@ -21,4 +21,26 @@ void main() {
     );
     expect(find.byType(ControlBar), findsOneWidget);
   });
+
+  testWidgets('player_page 不再有浮动剧集列表按钮（按钮在控制栏内）', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          playerEngineProvider.overrideWithValue(FakePlayerEngine()),
+          windowControllerProvider.overrideWithValue(FakeWindowController()),
+        ],
+        child: const MaterialApp(home: PlayerPage()),
+      ),
+    );
+
+    // The playlist toggle must live in the control bar — exactly one in the tree.
+    expect(find.byTooltip('剧集列表'), findsOneWidget);
+
+    // Verify it is inside ControlBar (not a stray Positioned floating button).
+    final controlBarFinder = find.byType(ControlBar);
+    expect(
+      find.descendant(of: controlBarFinder, matching: find.byTooltip('剧集列表')),
+      findsOneWidget,
+    );
+  });
 }

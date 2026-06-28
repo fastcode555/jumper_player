@@ -4,7 +4,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:jump_player/state/library_actions.dart';
 import 'package:jump_player/state/playback_providers.dart';
 import 'package:jump_player/state/playback_queue.dart';
+import 'package:jump_player/state/ui_providers.dart';
 import 'package:jump_player/state/window_providers.dart';
+import 'package:jump_player/ui/name_clean_config_dialog.dart';
 
 class ControlBar extends ConsumerWidget {
   const ControlBar({super.key});
@@ -61,6 +63,13 @@ class ControlBar extends ConsumerWidget {
             },
           ),
           IconButton(
+            tooltip: '剧集列表',
+            color: Colors.white,
+            icon: const Icon(Icons.playlist_play),
+            onPressed: () => ref.read(sidebarVisibleProvider.notifier).state =
+                !ref.read(sidebarVisibleProvider),
+          ),
+          IconButton(
             tooltip: '上一集',
             color: Colors.white,
             icon: const Icon(Icons.skip_previous),
@@ -84,6 +93,12 @@ class ControlBar extends ConsumerWidget {
             onPressed: queue.hasNext
                 ? ref.read(playbackQueueProvider.notifier).next
                 : null,
+          ),
+          IconButton(
+            tooltip: '命名配置',
+            color: Colors.white,
+            icon: const Icon(Icons.tune),
+            onPressed: () => showNameCleanConfigDialog(context),
           ),
           IconButton(
             tooltip: '全屏',
