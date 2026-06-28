@@ -84,7 +84,7 @@ class _NameCleanConfigDialogState extends ConsumerState<NameCleanConfigDialog> {
               children: [
                 for (final rule in BuiltinNoiseRule.values)
                   SwitchListTile(
-                    title: Text(kRuleLabels[rule]!),
+                    title: Text(kRuleLabels[rule] ?? rule.name),
                     value: _rules.contains(rule),
                     onChanged: (on) => setState(() {
                       on ? _rules.add(rule) : _rules.remove(rule);
