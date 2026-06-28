@@ -67,11 +67,12 @@ void main() {
     final title = tester.widget<Text>(find.text('很长很长的名字需要换行展示的剧集 01'));
     expect(title.maxLines, 2);
 
-    // more 菜单
-    await tester.tap(find.byIcon(Icons.more_vert).first);
+    // more 菜单（episode の trailing icon; folder header icon comes first）
+    await tester.tap(find.byIcon(Icons.more_vert).last);
     await tester.pumpAndSettle();
     expect(find.text('打开所在位置'), findsOneWidget);
     expect(find.text('重命名'), findsOneWidget);
+    expect(find.text('删除'), findsOneWidget); // episode menu also has delete
   });
 
   testWidgets('分组渲染：组标题 + 干净显示名，点击播放对应全局索引', (tester) async {
