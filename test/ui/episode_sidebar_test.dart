@@ -45,6 +45,35 @@ void main() {
     expect(container.read(playbackQueueProvider).currentIndex, 1);
   });
 
+  testWidgets('每个剧集项有两行标题与 more 菜单（打开所在位置/重命名）', (tester) async {
+    final fake = FakePlayerEngine();
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(fake),
+    ]);
+    addTearDown(container.dispose);
+    await container.read(playbackQueueProvider.notifier).loadSeries(
+          singleGroupSeries([
+            Episode(path: '/x/e1.mkv', fileName: 'e1.mkv',
+                displayName: '很长很长的名字需要换行展示的剧集 01', episodeNumber: 1),
+          ], name: 'X'),
+        );
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: Scaffold(body: EpisodeSidebar())),
+    ));
+    await tester.pump();
+
+    // 标题两行
+    final title = tester.widget<Text>(find.text('很长很长的名字需要换行展示的剧集 01'));
+    expect(title.maxLines, 2);
+
+    // more 菜单
+    await tester.tap(find.byIcon(Icons.more_vert).first);
+    await tester.pumpAndSettle();
+    expect(find.text('打开所在位置'), findsOneWidget);
+    expect(find.text('重命名'), findsOneWidget);
+  });
+
   testWidgets('分组渲染：组标题 + 干净显示名，点击播放对应全局索引', (tester) async {
     final fake = FakePlayerEngine();
     final container = ProviderContainer(overrides: [
