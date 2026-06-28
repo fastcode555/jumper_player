@@ -18,6 +18,12 @@ class _FakeLibraryActions implements LibraryActions {
   Future<void> reapplyCurrent() async {
     throw Exception('folder unmounted');
   }
+
+  @override
+  Future<void> revealEpisode(episode) async {}
+
+  @override
+  Future<void> renameEpisode(episode, String newBaseName) async {}
 }
 
 void main() {

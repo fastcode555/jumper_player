@@ -1,5 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:jump_player/domain/library/library_models.dart';
 import 'package:jump_player/domain/library/library_scanner.dart';
+import 'package:jump_player/infra/fs/file_system_ops.dart';
 import 'package:jump_player/state/name_clean_providers.dart';
 import 'package:jump_player/state/playback_queue.dart';
 
@@ -12,6 +14,8 @@ class LibraryActions {
 
   PlaybackQueueController get _queue =>
       _ref.read(playbackQueueProvider.notifier);
+
+  FileSystemOps get _ops => _ref.read(fileSystemOpsProvider);
 
   Future<void> openFolder(String path) async {
     final config = _ref.read(nameCleanConfigProvider);
@@ -27,8 +31,22 @@ class LibraryActions {
     final series = await _scanner.scan(root, config);
     _queue.remapSeries(series);
   }
+
+  Future<void> revealEpisode(Episode ep) => _ops.reveal(ep.path);
+
+  Future<void> renameEpisode(Episode ep, String newBaseName) async {
+    final newPath = await _ops.rename(ep.path, newBaseName);
+    final root = _currentRoot;
+    if (root == null) return;
+    final config = _ref.read(nameCleanConfigProvider);
+    final series = await _scanner.scan(root, config);
+    _queue.remapSeriesByPath(series, oldPath: ep.path, newPath: newPath);
+  }
 }
 
 final libraryActionsProvider = Provider<LibraryActions>((ref) {
   return LibraryActions(LibraryScanner(), ref);
 });
+
+final fileSystemOpsProvider =
+    Provider<FileSystemOps>((ref) => DefaultFileSystemOps());

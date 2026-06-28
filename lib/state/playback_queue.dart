@@ -56,6 +56,18 @@ class PlaybackQueueController extends StateNotifier<PlaybackQueueState> {
     state = PlaybackQueueState(series: series, currentIndex: idx < 0 ? -1 : idx);
   }
 
+  /// Swap in a re-scanned series after a rename. If [oldPath] was the current
+  /// episode, point currentIndex at [newPath]; otherwise preserve by current path.
+  void remapSeriesByPath(Series series,
+      {required String oldPath, required String newPath}) {
+    final currentPath = state.currentEpisode?.path;
+    final targetPath = currentPath == oldPath ? newPath : currentPath;
+    final eps = series.episodes;
+    final idx =
+        targetPath == null ? -1 : eps.indexWhere((e) => e.path == targetPath);
+    state = PlaybackQueueState(series: series, currentIndex: idx < 0 ? -1 : idx);
+  }
+
   Future<void> playAt(int index) async {
     final eps = state.episodes;
     if (index < 0 || index >= eps.length) return;
