@@ -176,4 +176,179 @@ void main() {
         .revealEpisode(Episode(path: '/x/y.mp4', fileName: 'y.mp4'));
     expect(calls, ['reveal:/x/y.mp4']);
   });
+
+  test('deleteEpisode trashes file and cascades folder when no videos remain',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final tmp = Directory.systemTemp.createTempSync('del_');
+    addTearDown(
+        () => tmp.existsSync() ? tmp.deleteSync(recursive: true) : null);
+    Directory('${tmp.path}/show').createSync();
+    File('${tmp.path}/show/01.mp4').writeAsStringSync('x');
+    File('${tmp.path}/show/.01.mp4.js').writeAsStringSync('x'); // sidecar junk
+
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(FakePlayerEngine()),
+      // force permanent-delete fallback so the test can observe disk state
+      fileSystemOpsProvider.overrideWithValue(
+          DefaultFileSystemOps(osOverride: 'linux', runner: (_, __) async {})),
+    ]);
+    addTearDown(container.dispose);
+    final actions = container.read(libraryActionsProvider);
+    await actions.openFolder(tmp.path);
+    final ep = container.read(playbackQueueProvider).episodes.first;
+
+    await actions.deleteEpisode(ep);
+
+    expect(File('${tmp.path}/show/01.mp4').existsSync(), isFalse);
+    expect(Directory('${tmp.path}/show').existsSync(),
+        isFalse); // cascaded (sidecar gone too)
+    expect(container.read(playbackQueueProvider).episodes.isEmpty, isTrue);
+  });
+
+  test('deleteEpisode keeps folder when other videos remain', () async {
+    SharedPreferences.setMockInitialValues({});
+    final tmp = Directory.systemTemp.createTempSync('del2_');
+    addTearDown(
+        () => tmp.existsSync() ? tmp.deleteSync(recursive: true) : null);
+    Directory('${tmp.path}/show').createSync();
+    File('${tmp.path}/show/01.mp4').writeAsStringSync('x');
+    File('${tmp.path}/show/02.mp4').writeAsStringSync('x');
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(FakePlayerEngine()),
+      fileSystemOpsProvider.overrideWithValue(
+          DefaultFileSystemOps(osOverride: 'linux', runner: (_, __) async {})),
+    ]);
+    addTearDown(container.dispose);
+    final actions = container.read(libraryActionsProvider);
+    await actions.openFolder(tmp.path);
+    final ep = container.read(playbackQueueProvider).episodes.first;
+    await actions.deleteEpisode(ep);
+    expect(Directory('${tmp.path}/show').existsSync(), isTrue);
+    expect(container.read(playbackQueueProvider).episodes.length, 1);
+  });
+
+  test('renameFolder renames dir and refreshes; root group guarded', () async {
+    SharedPreferences.setMockInitialValues({});
+    final tmp = Directory.systemTemp.createTempSync('rnf_');
+    addTearDown(
+        () => tmp.existsSync() ? tmp.deleteSync(recursive: true) : null);
+    Directory('${tmp.path}/old').createSync();
+    File('${tmp.path}/old/01.mp4').writeAsStringSync('x');
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(FakePlayerEngine()),
+    ]);
+    addTearDown(container.dispose);
+    final actions = container.read(libraryActionsProvider);
+    await actions.openFolder(tmp.path);
+    final g = container
+        .read(playbackQueueProvider)
+        .series!
+        .groups
+        .firstWhere((e) => e.dirPath == '${tmp.path}/old');
+    await actions.renameFolder(g, 'new');
+    expect(Directory('${tmp.path}/new').existsSync(), isTrue);
+    expect(
+        container
+            .read(playbackQueueProvider)
+            .series!
+            .groups
+            .any((e) => e.dirPath == '${tmp.path}/new'),
+        isTrue);
+  });
+
+  test('revealFolder calls ops.reveal with group.dirPath', () async {
+    SharedPreferences.setMockInitialValues({});
+    final calls = <String>[];
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(FakePlayerEngine()),
+      fileSystemOpsProvider.overrideWithValue(_FakeOps(calls)),
+    ]);
+    addTearDown(container.dispose);
+    final group = SeriesGroup(
+        title: 'Show', episodes: [], dirPath: '/x/show');
+    await container.read(libraryActionsProvider).revealFolder(group);
+    expect(calls, ['reveal:/x/show']);
+  });
+
+  test('deleteFolder trashes dir and refreshes; root group guarded', () async {
+    SharedPreferences.setMockInitialValues({});
+    final tmp = Directory.systemTemp.createTempSync('delf_');
+    addTearDown(
+        () => tmp.existsSync() ? tmp.deleteSync(recursive: true) : null);
+    Directory('${tmp.path}/show').createSync();
+    File('${tmp.path}/show/01.mp4').writeAsStringSync('x');
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(FakePlayerEngine()),
+      fileSystemOpsProvider.overrideWithValue(
+          DefaultFileSystemOps(osOverride: 'linux', runner: (_, __) async {})),
+    ]);
+    addTearDown(container.dispose);
+    final actions = container.read(libraryActionsProvider);
+    await actions.openFolder(tmp.path);
+    final g = container
+        .read(playbackQueueProvider)
+        .series!
+        .groups
+        .firstWhere((e) => e.dirPath == '${tmp.path}/show');
+    await actions.deleteFolder(g);
+    expect(Directory('${tmp.path}/show').existsSync(), isFalse);
+    expect(container.read(playbackQueueProvider).episodes.isEmpty, isTrue);
+  });
+
+  test('isRootGroup returns true for root, false for subgroup', () async {
+    SharedPreferences.setMockInitialValues({});
+    final tmp = Directory.systemTemp.createTempSync('root_');
+    addTearDown(() => tmp.deleteSync(recursive: true));
+    Directory('${tmp.path}/sub').createSync();
+    File('${tmp.path}/sub/01.mp4').writeAsStringSync('x');
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(FakePlayerEngine()),
+    ]);
+    addTearDown(container.dispose);
+    final actions = container.read(libraryActionsProvider);
+    await actions.openFolder(tmp.path);
+    final sub = container
+        .read(playbackQueueProvider)
+        .series!
+        .groups
+        .firstWhere((e) => e.dirPath == '${tmp.path}/sub');
+    // root pseudo-group with dirPath == _currentRoot
+    final rootGroup =
+        SeriesGroup(title: 'root', episodes: [], dirPath: tmp.path);
+    expect(actions.isRootGroup(rootGroup), isTrue);
+    expect(actions.isRootGroup(sub), isFalse);
+  });
+
+  test('renameFolder throws StateError on root group', () async {
+    SharedPreferences.setMockInitialValues({});
+    final tmp = Directory.systemTemp.createTempSync('rng_');
+    addTearDown(() => tmp.deleteSync(recursive: true));
+    File('${tmp.path}/01.mp4').writeAsStringSync('x');
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(FakePlayerEngine()),
+    ]);
+    addTearDown(container.dispose);
+    final actions = container.read(libraryActionsProvider);
+    await actions.openFolder(tmp.path);
+    final rootGroup =
+        SeriesGroup(title: 'root', episodes: [], dirPath: tmp.path);
+    expect(() => actions.renameFolder(rootGroup, 'x'), throwsStateError);
+  });
+
+  test('deleteFolder throws StateError on root group', () async {
+    SharedPreferences.setMockInitialValues({});
+    final tmp = Directory.systemTemp.createTempSync('dfg_');
+    addTearDown(() => tmp.deleteSync(recursive: true));
+    File('${tmp.path}/01.mp4').writeAsStringSync('x');
+    final container = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(FakePlayerEngine()),
+    ]);
+    addTearDown(container.dispose);
+    final actions = container.read(libraryActionsProvider);
+    await actions.openFolder(tmp.path);
+    final rootGroup =
+        SeriesGroup(title: 'root', episodes: [], dirPath: tmp.path);
+    expect(() => actions.deleteFolder(rootGroup), throwsStateError);
+  });
 }

@@ -24,6 +24,21 @@ class _FakeLibraryActions implements LibraryActions {
 
   @override
   Future<void> renameEpisode(episode, String newBaseName) async {}
+
+  @override
+  Future<void> deleteEpisode(episode) async {}
+
+  @override
+  Future<void> revealFolder(group) async {}
+
+  @override
+  Future<void> renameFolder(group, String newName) async {}
+
+  @override
+  Future<void> deleteFolder(group) async {}
+
+  @override
+  bool isRootGroup(group) => false;
 }
 
 void main() {
