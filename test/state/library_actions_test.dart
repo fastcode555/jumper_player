@@ -21,6 +21,15 @@ class _FakeOps implements FileSystemOps {
     calls.add('rename:$path:$newBaseName');
     return path;
   }
+
+  @override
+  Future<void> moveToTrash(String path) async => calls.add('moveToTrash:$path');
+
+  @override
+  Future<String> renameDirectory(String dirPath, String newName) async {
+    calls.add('renameDirectory:$dirPath:$newName');
+    return dirPath;
+  }
 }
 
 void main() {

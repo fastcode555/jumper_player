@@ -39,6 +39,57 @@ void main() {
     });
   });
 
+  group('trashCommand', () {
+    test('macOS uses Finder via osascript', () {
+      final c = trashCommand('/a/b.mp4', os: 'macos');
+      expect(c.executable, 'osascript');
+      expect(c.args.length, 2);
+      expect(c.args.first, '-e');
+      expect(c.args[1], contains('Finder'));
+      expect(c.args[1], contains('/a/b.mp4'));
+    });
+  });
+
+  group('moveToTrash', () {
+    test('runs the macOS finder command via injected runner', () async {
+      String? exe; List<String>? args;
+      final ops = DefaultFileSystemOps(osOverride: 'macos', runner: (e, a) async { exe = e; args = a; });
+      await ops.moveToTrash('/x/y.mp4');
+      expect(exe, 'osascript');
+      expect(args!.join(' '), contains('/x/y.mp4'));
+    });
+    test('non-macOS fallback permanently deletes', () async {
+      final tmp = Directory.systemTemp.createTempSync('trash_');
+      addTearDown(() => tmp.existsSync() ? tmp.deleteSync(recursive: true) : null);
+      final f = File('${tmp.path}/a.mp4')..writeAsStringSync('x');
+      final ops = DefaultFileSystemOps(osOverride: 'linux', runner: (_, __) async {});
+      await ops.moveToTrash(f.path);
+      expect(f.existsSync(), isFalse);
+    });
+  });
+
+  group('renameDirectory', () {
+    late Directory tmp;
+    setUp(() => tmp = Directory.systemTemp.createTempSync('rndir_'));
+    tearDown(() => tmp.existsSync() ? tmp.deleteSync(recursive: true) : null);
+    test('renames dir, returns new path', () async {
+      final d = Directory('${tmp.path}/old')..createSync();
+      final ops = DefaultFileSystemOps(runner: (_, __) async {});
+      final np = await ops.renameDirectory(d.path, '新剧名');
+      expect(np, '${tmp.path}/新剧名');
+      expect(Directory(np).existsSync(), isTrue);
+      expect(d.existsSync(), isFalse);
+    });
+    test('throws on empty/separator/collision', () async {
+      final d = Directory('${tmp.path}/x')..createSync();
+      Directory('${tmp.path}/taken').createSync();
+      final ops = DefaultFileSystemOps(runner: (_, __) async {});
+      expect(() => ops.renameDirectory(d.path, ' '), throwsArgumentError);
+      expect(() => ops.renameDirectory(d.path, 'a/b'), throwsArgumentError);
+      expect(() => ops.renameDirectory(d.path, 'taken'), throwsA(isA<FileSystemException>()));
+    });
+  });
+
   group('rename', () {
     late Directory tmp;
     setUp(() => tmp = Directory.systemTemp.createTempSync('fsops_'));

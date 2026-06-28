@@ -4,6 +4,16 @@ import 'dart:io';
 typedef ProcessRunner = Future<void> Function(
     String executable, List<String> args);
 
+({String executable, List<String> args}) trashCommand(String path,
+    {required String os}) {
+  final script =
+      'tell application "Finder" to delete (POSIX file ${_appleScriptString(path)} as alias)';
+  return (executable: 'osascript', args: ['-e', script]);
+}
+
+String _appleScriptString(String s) =>
+    '"${s.replaceAll(r'\', r'\\').replaceAll('"', r'\"')}"';
+
 ({String executable, List<String> args}) revealCommand(String path,
     {required String os}) {
   switch (os) {
@@ -25,6 +35,9 @@ abstract class FileSystemOps {
   /// same directory. Returns the new path. Throws [ArgumentError] for an empty
   /// or separator-containing name, and [FileSystemException] on collision.
   Future<String> rename(String path, String newBaseName);
+
+  Future<void> moveToTrash(String path);
+  Future<String> renameDirectory(String dirPath, String newName);
 }
 
 class DefaultFileSystemOps implements FileSystemOps {
@@ -64,6 +77,38 @@ class DefaultFileSystemOps implements FileSystemOps {
       throw FileSystemException('Target already exists', newPath);
     }
     await File(path).rename(newPath);
+    return newPath;
+  }
+
+  @override
+  Future<void> moveToTrash(String path) async {
+    if (_os == 'macos') {
+      final c = trashCommand(path, os: _os);
+      await _run(c.executable, c.args);
+      return;
+    }
+    // Fallback for non-macOS: permanent delete.
+    final type = FileSystemEntity.typeSync(path);
+    if (type == FileSystemEntityType.directory) {
+      await Directory(path).delete(recursive: true);
+    } else if (type != FileSystemEntityType.notFound) {
+      await File(path).delete();
+    }
+  }
+
+  @override
+  Future<String> renameDirectory(String dirPath, String newName) async {
+    final base = newName.trim();
+    if (base.isEmpty || base.contains('/') || base.contains(r'\')) {
+      throw ArgumentError('Invalid folder name: "$newName"');
+    }
+    final parent = _parentDir(dirPath);
+    final newPath = '$parent/$base';
+    if (newPath != dirPath &&
+        FileSystemEntity.typeSync(newPath) != FileSystemEntityType.notFound) {
+      throw FileSystemException('Target already exists', newPath);
+    }
+    await Directory(dirPath).rename(newPath);
     return newPath;
   }
 }
