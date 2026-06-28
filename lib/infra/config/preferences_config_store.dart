@@ -2,7 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jump_player/domain/library/name_clean_config.dart';
 
 class PreferencesConfigStore {
-  static const String _key = 'name_clean_config_v1';
+  static const String _key = 'name_clean_config_v2';
 
   Future<NameCleanConfig> load() async {
     final prefs = await SharedPreferences.getInstance();

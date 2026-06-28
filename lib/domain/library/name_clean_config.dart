@@ -1,8 +1,7 @@
 import 'dart:convert';
 
 enum BuiltinNoiseRule {
-  bracketGroups,
-  parenGroups,
+  latinBracketTags,
   resolution,
   codecSource,
   year,
@@ -19,8 +18,7 @@ class NameCleanConfig {
 
   static const NameCleanConfig defaults = NameCleanConfig(
     enabledBuiltinRules: {
-      BuiltinNoiseRule.bracketGroups,
-      BuiltinNoiseRule.parenGroups,
+      BuiltinNoiseRule.latinBracketTags,
       BuiltinNoiseRule.resolution,
       BuiltinNoiseRule.codecSource,
       BuiltinNoiseRule.year,

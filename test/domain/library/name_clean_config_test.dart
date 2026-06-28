@@ -10,12 +10,12 @@ void main() {
 
   test('encode/decode 往返保持数据', () {
     const cfg = NameCleanConfig(
-      enabledBuiltinRules: {BuiltinNoiseRule.bracketGroups, BuiltinNoiseRule.year},
+      enabledBuiltinRules: {BuiltinNoiseRule.latinBracketTags, BuiltinNoiseRule.year},
       customSnippets: ['HD国语中字无水印', '最新电影www.dyg7.com'],
     );
     final back = NameCleanConfig.decode(cfg.encode());
     expect(back.enabledBuiltinRules,
-        {BuiltinNoiseRule.bracketGroups, BuiltinNoiseRule.year});
+        {BuiltinNoiseRule.latinBracketTags, BuiltinNoiseRule.year});
     expect(back.customSnippets, ['HD国语中字无水印', '最新电影www.dyg7.com']);
   });
 
@@ -26,9 +26,9 @@ void main() {
 
   test('fromJson 忽略未知规则名', () {
     final cfg = NameCleanConfig.fromJson({
-      'enabledBuiltinRules': ['bracketGroups', 'somethingNew'],
+      'enabledBuiltinRules': ['latinBracketTags', 'somethingNew'],
       'customSnippets': <String>[],
     });
-    expect(cfg.enabledBuiltinRules, {BuiltinNoiseRule.bracketGroups});
+    expect(cfg.enabledBuiltinRules, {BuiltinNoiseRule.latinBracketTags});
   });
 }

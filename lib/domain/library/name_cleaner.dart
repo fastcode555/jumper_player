@@ -17,9 +17,8 @@ class CleanedName {
 }
 
 class NameCleaner {
+  // Pattern rules applied to content (not bracket groups themselves).
   static final Map<BuiltinNoiseRule, RegExp> _rulePatterns = {
-    BuiltinNoiseRule.bracketGroups: RegExp(r'\[[^\]]*\]'),
-    BuiltinNoiseRule.parenGroups: RegExp(r'\([^)]*\)'),
     BuiltinNoiseRule.resolution: RegExp(
         r'\b\d{3,4}[pi]\b|\b(?:4k|2k|2160p|1080p|720p|480p)\b',
         caseSensitive: false),
@@ -39,25 +38,63 @@ class NameCleaner {
     RegExp(r'\[\d{1,3}\]'),
   ];
 
-  static final RegExp _separators = RegExp(r'[\s._\-]+');
+  static final RegExp _separators = RegExp(r'[\s._]+');
   static final RegExp _digitsOnly = RegExp(r'^\d+$');
 
   static String _stem(String name) =>
       name.contains('.') ? name.substring(0, name.lastIndexOf('.')) : name;
 
-  static String _applyRules(String input, NameCleanConfig config) {
+  /// Returns true if all runes in [s] are ASCII (< 128).
+  static bool _isPureAscii(String s) => s.runes.every((r) => r < 128);
+
+  /// Apply the new pipeline (steps 3a–3d) to [input].
+  /// [forTitle] — if false we still strip episode tokens before bracket
+  ///              processing (unused here; caller does that on cleanedStem).
+  static String _applyPipeline(String input, NameCleanConfig config) {
     var s = input;
-    for (final rule in BuiltinNoiseRule.values) {
-      if (config.enabledBuiltinRules.contains(rule)) {
-        s = s.replaceAll(_rulePatterns[rule]!, ' ');
-      }
-    }
+
+    // 3a. Custom snippets — literal substring delete, case-insensitive.
     for (final snippet in config.customSnippets) {
       if (snippet.isEmpty) continue;
       s = s.replaceAll(
           RegExp(RegExp.escape(snippet), caseSensitive: false), ' ');
     }
-    return s;
+
+    // 3b. Pattern rules (resolution / codecSource / year) — replace matches
+    //     inside the working string with spaces so bracket interiors become
+    //     empty after the rule fires (e.g. `[2024]` → `[ ]`).
+    for (final rule in [
+      BuiltinNoiseRule.resolution,
+      BuiltinNoiseRule.codecSource,
+      BuiltinNoiseRule.year,
+    ]) {
+      if (config.enabledBuiltinRules.contains(rule)) {
+        s = s.replaceAll(_rulePatterns[rule]!, ' ');
+      }
+    }
+
+    // 3c. Bracket / paren group processing.
+    final latinEnabled =
+        config.enabledBuiltinRules.contains(BuiltinNoiseRule.latinBracketTags);
+
+    // Process square brackets.
+    s = s.replaceAllMapped(RegExp(r'\[([^\]]*)\]'), (m) {
+      final inner = m.group(1)!.trim();
+      if (inner.isEmpty) return ' ';
+      if (latinEnabled && _isPureAscii(inner)) return ' ';
+      return ' $inner ';
+    });
+
+    // Process round brackets.
+    s = s.replaceAllMapped(RegExp(r'\(([^)]*)\)'), (m) {
+      final inner = m.group(1)!.trim();
+      if (inner.isEmpty) return ' ';
+      if (latinEnabled && _isPureAscii(inner)) return ' ';
+      return ' $inner ';
+    });
+
+    // 3d. Normalize.
+    return _normalize(s);
   }
 
   static String _normalize(String input) =>
@@ -74,7 +111,7 @@ class NameCleaner {
   static String _pad(int n) => n.toString().padLeft(2, '0');
 
   static String cleanDir(String dirName, NameCleanConfig config) {
-    final cleaned = _normalize(_applyRules(_stem(dirName), config));
+    final cleaned = _applyPipeline(_stem(dirName), config);
     return cleaned.isEmpty ? dirName : cleaned;
   }
 
@@ -85,14 +122,18 @@ class NameCleaner {
   ) {
     final parsed = EpisodeSorter.parse(fileName); // 基于原始文件名
     final stem = _stem(fileName);
-    final cleanedStem = _normalize(_applyRules(stem, config));
 
+    // Steps 3a-3d.
+    final cleanedStem = _applyPipeline(stem, config);
+
+    // Step 4: derive seriesTitle by stripping episode tokens from cleanedStem.
     var title = _stripEpisodeTokens(cleanedStem);
     if (title.isEmpty || _digitsOnly.hasMatch(title)) {
       title = cleanDir(parentDirName, config);
     }
     if (title.isEmpty) title = stem;
 
+    // Step 5: displayName.
     final ep = parsed?.episode;
     final String displayName;
     if (ep != null) {

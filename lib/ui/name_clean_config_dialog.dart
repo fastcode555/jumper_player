@@ -6,8 +6,7 @@ import 'package:jump_player/state/library_actions.dart';
 import 'package:jump_player/state/name_clean_providers.dart';
 
 const Map<BuiltinNoiseRule, String> kRuleLabels = {
-  BuiltinNoiseRule.bracketGroups: '方括号组 […]',
-  BuiltinNoiseRule.parenGroups: '圆括号组 (…)',
+  BuiltinNoiseRule.latinBracketTags: '英文括号标签（[GM-Team]/[HEVC]…）',
   BuiltinNoiseRule.resolution: '分辨率（1080p/2160p…）',
   BuiltinNoiseRule.codecSource: '编码/来源（x265/WEB-DL/BluRay…）',
   BuiltinNoiseRule.year: '年份（19xx/20xx）',
