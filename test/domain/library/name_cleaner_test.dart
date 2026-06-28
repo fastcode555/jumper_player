@@ -16,7 +16,7 @@ void main() {
     );
     expect(r.episodeNumber, 1);
     expect(r.seriesTitle, '国漫 成何体统');
-    expect(r.displayName, '国漫 成何体统 01');
+    expect(r.displayName, '01');
   });
 
   // ── Canonical test 2a ─────────────────────────────────────────────────────
@@ -29,7 +29,7 @@ void main() {
       cfg2,
     );
     expect(r.seriesTitle, '成何体统');
-    expect(r.displayName, '成何体统 01');
+    expect(r.displayName, '01');
   });
 
   // ── Canonical test 2b ─────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ void main() {
       '成何体统 第二季',
       cfg2b,
     );
-    expect(r.displayName, '成何体统 01');
+    expect(r.displayName, '01');
   });
 
   // ── Canonical test 3 ──────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ void main() {
     );
     expect(r.episodeNumber, 1);
     expect(r.seriesTitle, '国漫 逆天邪神 第2季');
-    expect(r.displayName, '国漫 逆天邪神 第2季 01');
+    expect(r.displayName, '01');
   });
 
   // ── Canonical test 4 ──────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ void main() {
     final r = NameCleaner.clean('01.1080p.mp4', '柯南', cfg);
     expect(r.episodeNumber, 1);
     expect(r.seriesTitle, '柯南');
-    expect(r.displayName, '柯南 01');
+    expect(r.displayName, '01');
   });
 
   // ── Canonical test 5 ──────────────────────────────────────────────────────
@@ -95,7 +95,7 @@ void main() {
     final r = NameCleaner.clean('逆天邪神 第2季 第05集.mp4', 'Downloads', cfg);
     expect(r.episodeNumber, 5);
     expect(r.seriesTitle, '逆天邪神 第2季');
-    expect(r.displayName, '逆天邪神 第2季 05');
+    expect(r.displayName, '05');
   });
 
   test('无剧名只剩集号 + 自定义片段 → 回退父文件夹名', () {
@@ -106,7 +106,7 @@ void main() {
         '01.2160p.HD国语中字无水印[最新电影www.dyg7.com].mkv', '成何体统', c);
     expect(r.episodeNumber, 1);
     expect(r.seriesTitle, '成何体统');
-    expect(r.displayName, '成何体统 01');
+    expect(r.displayName, '01');
   });
 
   test('无集号：displayName 为清洗后的 stem', () {
@@ -128,7 +128,7 @@ void main() {
     );
     expect(r.episodeNumber, 1);
     expect(r.seriesTitle, 'HD国语中字无水印');
-    expect(r.displayName, 'HD国语中字无水印 01');
+    expect(r.displayName, '01');
   });
 
   // Canonical A2: [GM-Team] test unchanged by these changes.
@@ -140,7 +140,7 @@ void main() {
     );
     expect(r.episodeNumber, 1);
     expect(r.seriesTitle, '国漫 成何体统');
-    expect(r.displayName, '国漫 成何体统 01');
+    expect(r.displayName, '01');
   });
 
   // Canonical A3: season number 第2季 must NOT be stripped.
@@ -148,7 +148,7 @@ void main() {
     final r = NameCleaner.clean('逆天邪神 第2季 第05集.mp4', 'X', cfg);
     expect(r.episodeNumber, 5);
     expect(r.seriesTitle, '逆天邪神 第2季');
-    expect(r.displayName, '逆天邪神 第2季 05');
+    expect(r.displayName, '05');
   });
 
   // Canonical A4: url rule off → domain stays in display name.
@@ -167,10 +167,7 @@ void main() {
       'X',
       cfgNoUrl,
     );
-    // domain text should still be present when url rule is off
-    expect(
-      r.displayName.contains('www') || r.displayName.contains('5266ys'),
-      isTrue,
-    );
+    // domain text should still be present in seriesTitle when url rule is off
+    expect(r.seriesTitle, anyOf(contains('www'), contains('5266ys')));
   });
 }

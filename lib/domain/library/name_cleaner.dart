@@ -152,9 +152,11 @@ class NameCleaner {
     if (title.isEmpty) title = stem;
 
     // Step 5: displayName.
+    // When an episode number is present, show only the zero-padded number —
+    // the playlist group header (folder name) already carries the show title.
     final String displayName;
     if (ep != null) {
-      displayName = '$title ${_pad(ep)}';
+      displayName = _pad(ep);
     } else {
       displayName = cleanedStem.isEmpty ? stem : cleanedStem;
     }
