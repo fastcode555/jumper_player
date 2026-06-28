@@ -13,6 +13,7 @@ abstract class PlayerEngine {
 
 class FakePlayerEngine implements PlayerEngine {
   String? openedPath;
+  int openCount = 0;
   final _position = StreamController<Duration>.broadcast();
   final _playing = StreamController<bool>.broadcast();
   final _completed = StreamController<bool>.broadcast();
@@ -20,6 +21,7 @@ class FakePlayerEngine implements PlayerEngine {
   @override
   Future<void> open(String filePath) async {
     openedPath = filePath;
+    openCount++;
   }
 
   @override

@@ -70,6 +70,9 @@ void main() {
     );
     await container.read(nameCleanConfigProvider.notifier).save(newConfig);
 
+    // Record engine open count before reapply.
+    final openCountBefore = fake.openCount;
+
     // reapplyCurrent rescans with the new config.
     await container.read(libraryActionsProvider).reapplyCurrent();
 
@@ -82,6 +85,12 @@ void main() {
 
     // Currently-playing episode path must be preserved.
     expect(stateAfter.currentEpisode?.path, equals(ep1PathBefore));
+
+    // Engine must NOT have been re-opened (playback not interrupted).
+    expect(fake.openCount, equals(openCountBefore),
+        reason: 'reapplyCurrent must not call engine.open()');
+    expect(fake.openedPath, equals(ep1PathBefore),
+        reason: 'openedPath must still be the original episode');
   });
 
   test('reapplyCurrent 未打开文件夹时是 no-op', () async {

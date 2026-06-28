@@ -44,6 +44,18 @@ class PlaybackQueueController extends StateNotifier<PlaybackQueueState> {
     await playAt(idx);
   }
 
+  /// Swap in a re-scanned series (e.g. after a name-clean config change)
+  /// without interrupting playback: keeps the same episode by path and only
+  /// updates grouping/displayNames + currentIndex. Does NOT touch the engine.
+  void remapSeries(Series series) {
+    final currentPath = state.currentEpisode?.path;
+    final eps = series.episodes;
+    final idx = currentPath == null
+        ? state.currentIndex
+        : eps.indexWhere((e) => e.path == currentPath);
+    state = PlaybackQueueState(series: series, currentIndex: idx < 0 ? -1 : idx);
+  }
+
   Future<void> playAt(int index) async {
     final eps = state.episodes;
     if (index < 0 || index >= eps.length) return;

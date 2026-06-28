@@ -61,8 +61,17 @@ class _NameCleanConfigDialogState extends ConsumerState<NameCleanConfigDialog> {
       enabledBuiltinRules: _rules,
       customSnippets: _snippets,
     );
+    // Capture messenger synchronously before any await to avoid using
+    // BuildContext across an async gap.
+    final messenger = ScaffoldMessenger.of(context);
     await ref.read(nameCleanConfigProvider.notifier).save(cfg);
-    await ref.read(libraryActionsProvider).reapplyCurrent();
+    try {
+      await ref.read(libraryActionsProvider).reapplyCurrent();
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('无法重新生成命名：$e')),
+      );
+    }
     if (mounted) Navigator.of(context).pop();
   }
 

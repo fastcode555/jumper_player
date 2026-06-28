@@ -11,6 +11,7 @@ void main() {
     final a = Episode(path: '/a', fileName: 'a', displayName: 'A');
     final b = Episode(path: '/a', fileName: 'b', displayName: 'B');
     expect(a, b);
+    expect(Episode(path: '/a', fileName: 'a') == Episode(path: '/b', fileName: 'a'), isFalse);
   });
 
   test('Series.episodes 展平所有组', () {
