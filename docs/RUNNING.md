@@ -151,3 +151,19 @@ correctly. The app bundle is written to `build/macos/Build/Products/Debug/`.
 8. The P1 **打开文件** single-file open still works.
 
 All steps passing = P2 smoke test PASS.
+
+---
+
+## Manual Smoke Checklist (P2.5 — Control Bar)
+
+> Requires a desktop GUI session; run by a human.
+
+1. Launch: `flutter run -d macos`.
+2. There is a bottom control bar with icons: open-file, open-folder,
+   previous, play/pause, next, fullscreen — hovering shows a tooltip on each.
+3. No floating buttons cover the center of the video anymore.
+4. Click fullscreen -> the window goes fullscreen and the icon flips to
+   exit-fullscreen; click again -> exits.
+5. Open file / open folder, play/pause, previous/next all work from the bar.
+
+All steps passing = P2.5 smoke test PASS.
