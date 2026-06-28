@@ -8,7 +8,7 @@ import 'package:jump_player/state/playback_queue.dart';
 Series singleGroupSeries(List<Episode> eps, {String name = 's'}) => Series(
       name: name,
       rootPath: '/$name',
-      groups: [SeriesGroup(title: name, episodes: eps)],
+      groups: [SeriesGroup(title: name, episodes: eps, dirPath: '/$name')],
     );
 
 Series _series() => singleGroupSeries([

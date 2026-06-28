@@ -48,6 +48,7 @@ class LibraryScanner {
         SeriesGroup(
           title: NameCleaner.cleanDir(_baseName(dirPath), config),
           episodes: EpisodeSorter.sort(groupsMap[dirPath]!),
+          dirPath: dirPath,
         ),
     ];
 

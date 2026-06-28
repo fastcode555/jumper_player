@@ -10,7 +10,7 @@ import 'package:jump_player/ui/episode_sidebar.dart';
 Series singleGroupSeries(List<Episode> eps, {String name = 's'}) => Series(
       name: name,
       rootPath: '/$name',
-      groups: [SeriesGroup(title: name, episodes: eps)],
+      groups: [SeriesGroup(title: name, episodes: eps, dirPath: '/$name')],
     );
 
 void main() {
@@ -85,7 +85,7 @@ void main() {
       name: 'lib',
       rootPath: '/lib',
       groups: [
-        SeriesGroup(title: '逆天邪神 第2季', episodes: [
+        SeriesGroup(title: '逆天邪神 第2季', dirPath: '/lib/逆天邪神 第2季', episodes: [
           Episode(
               path: '/a/1',
               fileName: 'f1',
@@ -97,7 +97,7 @@ void main() {
               displayName: '逆天邪神 第2季 02',
               episodeNumber: 2),
         ]),
-        SeriesGroup(title: '成何体统', episodes: [
+        SeriesGroup(title: '成何体统', dirPath: '/lib/成何体统', episodes: [
           Episode(
               path: '/b/1',
               fileName: 'g1',

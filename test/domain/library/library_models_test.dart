@@ -16,11 +16,11 @@ void main() {
 
   test('Series.episodes 展平所有组', () {
     final s = Series(name: 's', rootPath: '/s', groups: [
-      SeriesGroup(title: 'g1', episodes: [Episode(path: '/1', fileName: '1')]),
+      SeriesGroup(title: 'g1', episodes: [Episode(path: '/1', fileName: '1')], dirPath: '/s/g1'),
       SeriesGroup(title: 'g2', episodes: [
         Episode(path: '/2', fileName: '2'),
         Episode(path: '/3', fileName: '3'),
-      ]),
+      ], dirPath: '/s/g2'),
     ]);
     expect(s.episodes.map((e) => e.path), ['/1', '/2', '/3']);
   });

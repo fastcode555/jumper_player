@@ -41,4 +41,12 @@ void main() {
     final series = await LibraryScanner().scan(tmp.path);
     expect(series.episodes.length, 1);
   });
+
+  test('每组记录其真实目录路径 dirPath', () async {
+    Directory('${tmp.path}/A').createSync();
+    File('${tmp.path}/A/01.mp4').writeAsStringSync('x');
+    final s = await LibraryScanner().scan(tmp.path);
+    final g = s.groups.firstWhere((e) => e.title == 'A');
+    expect(g.dirPath, '${tmp.path}/A');
+  });
 }

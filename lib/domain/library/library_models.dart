@@ -21,10 +21,15 @@ class Episode {
 }
 
 class SeriesGroup {
-  const SeriesGroup({required this.title, required this.episodes});
+  const SeriesGroup({
+    required this.title,
+    required this.episodes,
+    required this.dirPath,
+  });
 
   final String title;
   final List<Episode> episodes;
+  final String dirPath;
 }
 
 class Series {
