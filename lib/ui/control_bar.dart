@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:jump_player/state/library_actions.dart';
 import 'package:jump_player/state/playback_providers.dart';
 import 'package:jump_player/state/playback_queue.dart';
+import 'package:jump_player/state/playback_settings.dart';
 import 'package:jump_player/state/ui_providers.dart';
 import 'package:jump_player/state/window_providers.dart';
 import 'package:jump_player/ui/name_clean_config_dialog.dart';
@@ -17,6 +18,7 @@ class ControlBar extends ConsumerWidget {
     final isPlaying = ref.watch(isPlayingProvider).value ?? false;
     final queue = ref.watch(playbackQueueProvider);
     final isFullScreen = ref.watch(isFullScreenProvider);
+    final autoAdvance = ref.watch(autoAdvanceProvider);
 
     return Container(
       height: 56,
@@ -93,6 +95,12 @@ class ControlBar extends ConsumerWidget {
             onPressed: queue.hasNext
                 ? ref.read(playbackQueueProvider.notifier).next
                 : null,
+          ),
+          IconButton(
+            tooltip: autoAdvance ? '自动连播：开' : '自动连播：关',
+            color: autoAdvance ? Colors.white : Colors.white38,
+            icon: const Icon(Icons.queue_play_next),
+            onPressed: () => ref.read(autoAdvanceProvider.notifier).toggle(),
           ),
           IconButton(
             tooltip: '命名配置',
