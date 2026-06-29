@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:jump_player/domain/library/library_models.dart';
 import 'package:jump_player/domain/playback/player_engine.dart';
 import 'package:jump_player/state/playback_providers.dart';
+import 'package:jump_player/state/playback_settings.dart';
 
 class PlaybackQueueState {
   const PlaybackQueueState({this.series, this.currentIndex = -1});
@@ -94,5 +95,8 @@ class PlaybackQueueController extends StateNotifier<PlaybackQueueState> {
 final playbackQueueProvider =
     StateNotifierProvider<PlaybackQueueController, PlaybackQueueState>((ref) {
   final engine = ref.watch(playerEngineProvider);
-  return PlaybackQueueController(engine);
+  final controller = PlaybackQueueController(engine);
+  controller.autoNext = ref.read(autoAdvanceProvider);
+  ref.listen<bool>(autoAdvanceProvider, (_, value) => controller.autoNext = value);
+  return controller;
 });

@@ -4,6 +4,8 @@ import 'package:jump_player/domain/library/library_models.dart';
 import 'package:jump_player/domain/playback/player_engine.dart';
 import 'package:jump_player/state/playback_providers.dart';
 import 'package:jump_player/state/playback_queue.dart';
+import 'package:jump_player/state/playback_settings.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Series singleGroupSeries(List<Episode> eps, {String name = 's'}) => Series(
       name: name,
@@ -18,10 +20,13 @@ Series _series() => singleGroupSeries([
     ], name: 'X');
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late FakePlayerEngine fake;
   late ProviderContainer container;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     fake = FakePlayerEngine();
     container = ProviderContainer(overrides: [
       playerEngineProvider.overrideWithValue(fake),
@@ -68,5 +73,12 @@ void main() {
     fake.emitCompleted(false);
     await Future<void>.delayed(Duration.zero);
     expect(container.read(playbackQueueProvider).currentIndex, 0);
+  });
+
+  test('autoAdvanceProvider syncs to PlaybackQueueController.autoNext', () async {
+    final controller = container.read(playbackQueueProvider.notifier);
+    expect(controller.autoNext, isTrue);
+    await container.read(autoAdvanceProvider.notifier).set(false);
+    expect(controller.autoNext, isFalse);
   });
 }
