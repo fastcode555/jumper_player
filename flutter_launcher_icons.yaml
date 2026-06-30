@@ -1,0 +1,12 @@
+flutter_launcher_icons:
+  image_path: "ic_launcher.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  macos:
+    generate: true
+    image_path: "ic_launcher.png"
+  windows:
+    generate: true
+    image_path: "ic_launcher.png"
+    icon_size: 256
