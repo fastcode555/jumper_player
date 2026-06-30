@@ -19,6 +19,17 @@ class PlaybackQueueState {
           : null;
   bool get hasNext => currentIndex >= 0 && currentIndex < episodes.length - 1;
   bool get hasPrevious => currentIndex > 0;
+
+  String? get currentGroupDirPath {
+    final s = series;
+    if (s == null || currentIndex < 0) return null;
+    var idx = currentIndex;
+    for (final g in s.groups) {
+      if (idx < g.episodes.length) return g.dirPath;
+      idx -= g.episodes.length;
+    }
+    return null;
+  }
 }
 
 class PlaybackQueueController extends StateNotifier<PlaybackQueueState> {

@@ -81,4 +81,34 @@ void main() {
     await container.read(autoAdvanceProvider.notifier).set(false);
     expect(controller.autoNext, isFalse);
   });
+
+  test('currentGroupDirPath 定位当前集所在组', () async {
+    final series = Series(
+      name: 'x',
+      rootPath: '/x',
+      groups: [
+        SeriesGroup(
+          title: 'A',
+          dirPath: '/x/A',
+          episodes: [
+            Episode(path: '/x/A/e0.mkv', fileName: 'e0.mkv', episodeNumber: 0),
+          ],
+        ),
+        SeriesGroup(
+          title: 'B',
+          dirPath: '/x/B',
+          episodes: [
+            Episode(path: '/x/B/e1.mkv', fileName: 'e1.mkv', episodeNumber: 1),
+            Episode(path: '/x/B/e2.mkv', fileName: 'e2.mkv', episodeNumber: 2),
+          ],
+        ),
+      ],
+    );
+    final c = container.read(playbackQueueProvider.notifier);
+    await c.loadSeries(series);
+    await c.playAt(2);
+    expect(container.read(playbackQueueProvider).currentGroupDirPath, '/x/B');
+    await c.playAt(0);
+    expect(container.read(playbackQueueProvider).currentGroupDirPath, '/x/A');
+  });
 }
