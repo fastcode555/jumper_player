@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:jump_player/state/playback_providers.dart';
+import 'package:jump_player/state/skip_watcher.dart';
 import 'package:jump_player/state/ui_providers.dart';
 import 'package:jump_player/ui/control_bar.dart';
 import 'package:jump_player/ui/episode_sidebar.dart';
+import 'package:jump_player/ui/skip_settings_bar.dart';
 
 class PlayerPage extends ConsumerWidget {
   const PlayerPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(skipWatcherProvider);
     final controller = ref.watch(videoControllerProvider);
 
     return Scaffold(
@@ -31,6 +34,7 @@ class PlayerPage extends ConsumerWidget {
             ),
           ),
           const ControlBar(),
+          const SkipSettingsBar(),
         ],
       ),
     );
