@@ -137,6 +137,9 @@ void main() {
     expect(find.text('逆天邪神 第2季'), findsOneWidget);
     expect(find.text('成何体统'), findsOneWidget);
 
+    // Group title wraps up to two lines (not single-line ellipsis).
+    expect(tester.widget<Text>(find.text('成何体统')).maxLines, 2);
+
     // displayName shown (not raw fileName)
     expect(find.text('逆天邪神 第2季 01'), findsOneWidget);
 

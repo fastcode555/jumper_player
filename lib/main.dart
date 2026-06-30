@@ -14,6 +14,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
   await windowManager.ensureInitialized();
+  // Match the dark UI: render the native macOS title bar with a dark
+  // background and light text instead of the default white bar.
+  await windowManager.setBrightness(Brightness.dark);
   final PlayerEngine engine = MediaKitPlayerEngine();
   final WindowController window = WindowManagerController();
   runApp(

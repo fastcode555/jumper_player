@@ -63,6 +63,7 @@ class EpisodeSidebar extends ConsumerWidget {
                   group.title,
                   style: const TextStyle(
                       color: Colors.white70, fontWeight: FontWeight.bold),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
