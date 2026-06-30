@@ -10,10 +10,13 @@ class SkipConfigController extends StateNotifier<Map<String, SkipConfig>> {
     _load();
   }
   final PreferencesSkipStore _store;
+  bool _dirty = false;
 
   Future<void> _load() async {
     final loaded = await _store.load();
-    if (mounted) state = loaded;
+    // A write (setIntro/setOutro/clear) may have landed while the initial
+    // load was in flight; don't clobber it with the stale snapshot.
+    if (mounted && !_dirty) state = loaded;
   }
 
   SkipConfig configFor(String dirPath) => state[dirPath] ?? const SkipConfig();
@@ -25,12 +28,14 @@ class SkipConfigController extends StateNotifier<Map<String, SkipConfig>> {
       dirPath, configFor(dirPath).copyWith(outroSeconds: seconds < 0 ? 0 : seconds));
 
   Future<void> clear(String dirPath) async {
+    _dirty = true;
     final copy = Map<String, SkipConfig>.from(state)..remove(dirPath);
     state = copy;
     await _store.save(copy);
   }
 
   Future<void> _update(String dirPath, SkipConfig cfg) async {
+    _dirty = true;
     final copy = Map<String, SkipConfig>.from(state)..[dirPath] = cfg;
     state = copy;
     await _store.save(copy);
