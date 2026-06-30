@@ -49,6 +49,13 @@ class SkipWatcher {
       return;
     }
 
+    // Outro: advance before the credits. This never double-advances with
+    // PlaybackQueueController's own completedStream-based auto-next: outro
+    // fires strictly before EOF (outroSeconds > 0), and calling next() ->
+    // engine.open() on the next file suppresses the old media's `completed`
+    // event, so the two advance paths are temporally disjoint per episode.
+    // When auto-advance is OFF we intentionally leave _outroDone unset so the
+    // skip can still fire once the user turns auto-advance back on mid-outro.
     if (!_outroDone &&
         cfg.outroSeconds > 0 &&
         d > 0 &&
