@@ -39,5 +39,20 @@ void main() {
       expect(emitted, [true]);
       await sub.cancel();
     });
+
+    test('FakePlayerEngine emitDuration pushes onto durationStream', () async {
+      final e = FakePlayerEngine();
+      addTearDown(e.dispose);
+      final f = expectLater(e.durationStream, emits(const Duration(minutes: 24)));
+      e.emitDuration(const Duration(minutes: 24));
+      await f;
+    });
+
+    test('FakePlayerEngine records seekedTo', () async {
+      final e = FakePlayerEngine();
+      addTearDown(e.dispose);
+      await e.seek(const Duration(seconds: 90));
+      expect(e.seekedTo, const Duration(seconds: 90));
+    });
   });
 }

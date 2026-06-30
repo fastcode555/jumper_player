@@ -34,5 +34,8 @@ class MediaKitPlayerEngine implements PlayerEngine {
   Stream<bool> get completedStream => _player.stream.completed;
 
   @override
+  Stream<Duration> get durationStream => _player.stream.duration;
+
+  @override
   Future<void> dispose() => _player.dispose();
 }

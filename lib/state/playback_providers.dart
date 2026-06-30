@@ -17,6 +17,10 @@ final positionProvider = StreamProvider<Duration>((ref) {
   return ref.watch(playerEngineProvider).positionStream;
 });
 
+final durationProvider = StreamProvider<Duration>((ref) {
+  return ref.watch(playerEngineProvider).durationStream;
+});
+
 final videoControllerProvider = Provider<VideoController?>((ref) {
   final engine = ref.watch(playerEngineProvider);
   return engine is MediaKitPlayerEngine ? engine.videoController : null;
