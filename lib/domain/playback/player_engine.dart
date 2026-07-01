@@ -16,6 +16,11 @@ class FakePlayerEngine implements PlayerEngine {
   String? openedPath;
   int openCount = 0;
   Duration? seekedTo;
+  int seekCount = 0;
+
+  /// When true, `seek` records the call but does NOT move the position stream,
+  /// simulating an engine that drops a seek issued before it is ready.
+  bool dropSeeks = false;
   final _position = StreamController<Duration>.broadcast();
   final _playing = StreamController<bool>.broadcast();
   final _completed = StreamController<bool>.broadcast();
@@ -36,7 +41,8 @@ class FakePlayerEngine implements PlayerEngine {
   @override
   Future<void> seek(Duration position) async {
     seekedTo = position;
-    _position.add(position);
+    seekCount++;
+    if (!dropSeeks) _position.add(position);
   }
 
   @override

@@ -22,9 +22,16 @@ class SkipWatcher {
   late final ProviderSubscription<AsyncValue<Duration>> _sub;
   late final ProviderSubscription<AsyncValue<Duration>> _durationSub;
 
+  // Retry the intro seek up to this many position ticks. A seek issued right
+  // after open/play is often dropped by media_kit before it is ready to seek,
+  // so one attempt is unreliable; this bounds the retry to the episode's
+  // startup window so we never fight a user who scrubs into the opening.
+  static const int _maxIntroAttempts = 40;
+
   String? _episodePath;
   bool _introDone = false;
   bool _outroDone = false;
+  int _introAttempts = 0;
 
   void _onPosition(Duration pos) {
     final queue = _ref.read(playbackQueueProvider);
@@ -33,6 +40,7 @@ class SkipWatcher {
       _episodePath = path;
       _introDone = false;
       _outroDone = false;
+      _introAttempts = 0;
     }
     final dirPath = queue.currentGroupDirPath;
     if (dirPath == null) return;
@@ -40,13 +48,20 @@ class SkipWatcher {
     final d = (_ref.read(durationProvider).value ?? Duration.zero).inSeconds;
     final p = pos.inSeconds;
 
-    if (!_introDone &&
-        cfg.introSeconds > 0 &&
-        (d == 0 || cfg.introSeconds < d) &&
-        p < cfg.introSeconds) {
-      _introDone = true;
-      _ref.read(playerEngineProvider).seek(Duration(seconds: cfg.introSeconds));
-      return;
+    // Intro: keep re-issuing the seek until the position actually reaches the
+    // intro end, then mark done. This survives the dropped-seek race above.
+    if (!_introDone && cfg.introSeconds > 0 && (d == 0 || cfg.introSeconds < d)) {
+      if (p >= cfg.introSeconds) {
+        _introDone = true;
+      } else if (_introAttempts < _maxIntroAttempts) {
+        _introAttempts++;
+        _ref
+            .read(playerEngineProvider)
+            .seek(Duration(seconds: cfg.introSeconds));
+        return;
+      } else {
+        _introDone = true;
+      }
     }
 
     // Outro: advance before the credits. This never double-advances with

@@ -36,6 +36,35 @@ void main() {
     expect(fake.seekedTo, const Duration(seconds: 90));
   });
 
+  test('片头 seek 被丢弃时重试，直到位置真到片头才停', () async {
+    SharedPreferences.setMockInitialValues({});
+    final fake = FakePlayerEngine()..dropSeeks = true; // seek 不移动位置（模拟被丢弃）
+    final c = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(fake),
+    ]);
+    addTearDown(c.dispose);
+    c.read(skipWatcherProvider);
+    await c.read(playbackQueueProvider.notifier).loadSeries(_series());
+    await c.read(skipConfigProvider.notifier).setIntro('/s/A', 90);
+    fake.emitDuration(const Duration(minutes: 24));
+    await Future<void>.delayed(Duration.zero);
+
+    // 位置停在片头内且 seek 被丢弃 → watcher 应反复重试。
+    for (var i = 0; i < 3; i++) {
+      fake.emitPosition(const Duration(seconds: 2));
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(fake.seekCount, greaterThan(1));
+
+    // 模拟 seek 终于生效：位置到达片头后不再重试（一次性完成）。
+    final before = fake.seekCount;
+    fake.emitPosition(const Duration(seconds: 90));
+    await Future<void>.delayed(Duration.zero);
+    fake.emitPosition(const Duration(seconds: 91));
+    await Future<void>.delayed(Duration.zero);
+    expect(fake.seekCount, before);
+  });
+
   test('片尾到点：自动连播开 → next；关 → 不 next', () async {
     SharedPreferences.setMockInitialValues({});
     final fake = FakePlayerEngine();
