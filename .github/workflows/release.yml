@@ -1,0 +1,82 @@
+name: Release
+
+# Build desktop packages and publish them to the GitHub Releases page.
+# Push a tag like `v0.1.0` to trigger a release build; assets are attached
+# to the release for that tag. `workflow_dispatch` builds without releasing.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: '3.27.2'
+
+jobs:
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - run: flutter config --enable-macos-desktop
+      - run: flutter pub get
+      - run: flutter build macos --release
+      - name: Package .app into a zip
+        run: |
+          cd build/macos/Build/Products/Release
+          ditto -c -k --sequesterRsrc --keepParent jump_player.app jump_player-macos.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jump_player-macos
+          path: build/macos/Build/Products/Release/jump_player-macos.zip
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - name: Package Release folder into a zip
+        run: |
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath jump_player-windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jump_player-windows
+          path: jump_player-windows.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish Release
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/jump_player-macos/jump_player-macos.zip
+            artifacts/jump_player-windows/jump_player-windows.zip
+          generate_release_notes: true
+          body: |
+            桌面版下载（未做代码签名）：
+
+            - **macOS**: `jump_player-macos.zip` — 解压后首次打开若被拦截，右键 App → 打开，或执行 `xattr -cr jump_player.app`。
+            - **Windows**: `jump_player-windows.zip` — 解压后运行 `jump_player.exe`；SmartScreen 提示时选择"仍要运行"。
