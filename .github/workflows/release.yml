@@ -25,6 +25,7 @@ jobs:
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
+          cache: true
       - run: flutter config --enable-macos-desktop
       - run: flutter pub get
       - run: flutter build macos --release
@@ -40,13 +41,16 @@ jobs:
 
   build-windows:
     name: Build Windows
-    runs-on: windows-latest
+    # windows-2022 ships Visual Studio 2022, which Flutter's CMake generator
+    # expects; windows-latest mis-detected VS and fell back to VS 2019.
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
+          cache: true
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
       - run: flutter build windows --release
