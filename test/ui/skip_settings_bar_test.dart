@@ -30,6 +30,28 @@ void main() {
     expect(find.text('片头'), findsNothing);
   });
 
+  testWidgets('字段随配置实时刷新：设置后显示秒数（默认 0）', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final c = ProviderContainer(overrides: [
+      playerEngineProvider.overrideWithValue(FakePlayerEngine()),
+    ]);
+    addTearDown(c.dispose);
+    await c.read(playbackQueueProvider.notifier).loadSeries(_series());
+    await tester.pumpWidget(UncontrolledProviderScope(container: c,
+      child: const MaterialApp(home: Scaffold(body: SkipSettingsBar()))));
+    await tester.pump();
+
+    // 未设置 → 片头字段默认 0
+    expect(tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+        '0');
+
+    // 设置后（模拟异步加载完成 / 另一处标记）→ 字段实时刷新为秒数
+    await c.read(skipConfigProvider.notifier).setIntro('/s/A', 77);
+    await tester.pump();
+    expect(tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+        '77');
+  });
+
   testWidgets('标记片头写入当前位置', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final fake = FakePlayerEngine();

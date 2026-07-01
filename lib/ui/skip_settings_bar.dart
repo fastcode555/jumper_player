@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:jump_player/domain/playback/skip_config.dart';
 import 'package:jump_player/state/playback_providers.dart';
 import 'package:jump_player/state/playback_queue.dart';
 import 'package:jump_player/state/skip_providers.dart';
@@ -15,6 +16,7 @@ class _SkipSettingsBarState extends ConsumerState<SkipSettingsBar> {
   final _intro = TextEditingController();
   final _outro = TextEditingController();
   String? _dirPath;
+  SkipConfig? _syncedCfg;
 
   @override
   void dispose() {
@@ -23,10 +25,15 @@ class _SkipSettingsBarState extends ConsumerState<SkipSettingsBar> {
     super.dispose();
   }
 
-  void _syncFields(String dirPath) {
-    if (_dirPath == dirPath) return;
+  /// Reflect the current series' saved config in the fields. Re-syncs whenever
+  /// the series changes OR its stored config changes (e.g. the async load
+  /// finishes, or a value is marked), so a series that already has an intro
+  /// shows its seconds instead of a stale 0. Skipped when nothing changed, so
+  /// it never clobbers in-progress typing (typing doesn't change the config).
+  void _syncFields(String dirPath, SkipConfig cfg) {
+    if (_dirPath == dirPath && _syncedCfg == cfg) return;
     _dirPath = dirPath;
-    final cfg = ref.read(skipConfigProvider.notifier).configFor(dirPath);
+    _syncedCfg = cfg;
     _intro.text = cfg.introSeconds.toString();
     _outro.text = cfg.outroSeconds.toString();
   }
@@ -41,7 +48,9 @@ class _SkipSettingsBarState extends ConsumerState<SkipSettingsBar> {
     final dirPath = ref.watch(
         playbackQueueProvider.select((s) => s.currentGroupDirPath));
     if (dirPath == null) return const SizedBox.shrink();
-    _syncFields(dirPath);
+    final cfg = ref.watch(
+        skipConfigProvider.select((m) => m[dirPath] ?? const SkipConfig()));
+    _syncFields(dirPath, cfg);
     final notifier = ref.read(skipConfigProvider.notifier);
     // Keep the position/duration stream subscriptions alive: a StreamProvider
     // only starts listening to its underlying stream once it is
@@ -79,17 +88,16 @@ class _SkipSettingsBarState extends ConsumerState<SkipSettingsBar> {
       color: Colors.black87,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(children: [
-        field('片头', _intro, 'mark-intro', () {
-          final p = _posSeconds();
-          notifier.setIntro(dirPath, p);
-          setState(() => _intro.text = p.toString());
-        }, (v) => notifier.setIntro(dirPath, int.tryParse(v) ?? 0)),
+        // Marking updates the stored config, which re-syncs the field text
+        // reactively via _syncFields (no manual controller write needed).
+        field('片头', _intro, 'mark-intro',
+            () => notifier.setIntro(dirPath, _posSeconds()),
+            (v) => notifier.setIntro(dirPath, int.tryParse(v) ?? 0)),
         const SizedBox(width: 16),
-        field('片尾', _outro, 'mark-outro', () {
-          final m = (_durSeconds() - _posSeconds()).clamp(0, 1 << 31);
-          notifier.setOutro(dirPath, m);
-          setState(() => _outro.text = m.toString());
-        }, (v) => notifier.setOutro(dirPath, int.tryParse(v) ?? 0)),
+        field('片尾', _outro, 'mark-outro',
+            () => notifier.setOutro(
+                dirPath, (_durSeconds() - _posSeconds()).clamp(0, 1 << 31)),
+            (v) => notifier.setOutro(dirPath, int.tryParse(v) ?? 0)),
       ]),
     );
   }
