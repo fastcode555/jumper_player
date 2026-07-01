@@ -1,8 +1,8 @@
 name: Release
 
-# Build desktop packages and publish them to the GitHub Releases page.
-# Push a tag like `v0.1.0` to trigger a release build; assets are attached
-# to the release for that tag. `workflow_dispatch` builds without releasing.
+# Build desktop installers and publish them to the GitHub Releases page.
+# Push a tag like `v0.1.0` to trigger a release build; a macOS .dmg and a
+# Windows setup .exe are attached to the release for that tag.
 on:
   push:
     tags:
@@ -17,7 +17,7 @@ env:
 
 jobs:
   build-macos:
-    name: Build macOS
+    name: Build macOS (.dmg)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,18 +29,23 @@ jobs:
       - run: flutter config --enable-macos-desktop
       - run: flutter pub get
       - run: flutter build macos --release
-      - name: Package .app into a zip
+      - name: Package .app into a .dmg
         run: |
-          cd build/macos/Build/Products/Release
-          ditto -c -k --sequesterRsrc --keepParent jump_player.app jump_player-macos.zip
+          APP="build/macos/Build/Products/Release/jump_player.app"
+          STAGING="$RUNNER_TEMP/dmg"
+          rm -rf "$STAGING" && mkdir -p "$STAGING"
+          cp -R "$APP" "$STAGING/"
+          ln -s /Applications "$STAGING/Applications"
+          hdiutil create -volname "Jump Player" -srcfolder "$STAGING" \
+            -ov -format UDZO jump_player-macos.dmg
       - uses: actions/upload-artifact@v4
         with:
           name: jump_player-macos
-          path: build/macos/Build/Products/Release/jump_player-macos.zip
+          path: jump_player-macos.dmg
           if-no-files-found: error
 
   build-windows:
-    name: Build Windows
+    name: Build Windows (setup .exe)
     # windows-2022 ships Visual Studio 2022, which Flutter's CMake generator
     # expects; windows-latest mis-detected VS and fell back to VS 2019.
     runs-on: windows-2022
@@ -54,13 +59,18 @@ jobs:
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
       - run: flutter build windows --release
-      - name: Package Release folder into a zip
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Build installer (.exe)
+        shell: pwsh
         run: |
-          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath jump_player-windows.zip
+          $v = "${{ github.ref_name }}".TrimStart('v')
+          if ($v -notmatch '^\d') { $v = '0.0.0' }
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=$v /O"installer" windows\installer.iss
       - uses: actions/upload-artifact@v4
         with:
           name: jump_player-windows
-          path: jump_player-windows.zip
+          path: installer/jump_player-windows-setup.exe
           if-no-files-found: error
 
   release:
@@ -76,11 +86,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/jump_player-macos/jump_player-macos.zip
-            artifacts/jump_player-windows/jump_player-windows.zip
+            artifacts/jump_player-macos/jump_player-macos.dmg
+            artifacts/jump_player-windows/jump_player-windows-setup.exe
           generate_release_notes: true
           body: |
-            桌面版下载（未做代码签名）：
+            桌面安装包下载（未做代码签名）：
 
-            - **macOS**: `jump_player-macos.zip` — 解压后首次打开若被拦截，右键 App → 打开，或执行 `xattr -cr jump_player.app`。
-            - **Windows**: `jump_player-windows.zip` — 解压后运行 `jump_player.exe`；SmartScreen 提示时选择"仍要运行"。
+            - **macOS**: `jump_player-macos.dmg` — 打开后把 App 拖到 Applications。首次打开若被拦截，右键 App → 打开，或执行 `xattr -cr /Applications/jump_player.app`。
+            - **Windows**: `jump_player-windows-setup.exe` — 双击安装；SmartScreen 提示时选择"更多信息 → 仍要运行"。
